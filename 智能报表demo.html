@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>财务智能审核系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            opacity: 0; /* For page load animation */
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Navbar styles */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        .nav-content { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: bold; color: #667eea; }
+        .nav-links { display: flex; gap: 20px; } /* Adjusted gap for more links */
+        .nav-link { text-decoration: none; color: #333; font-weight: 500; padding: 10px 15px; border-radius: 25px; transition: all 0.3s ease; cursor: pointer; } /* Adjusted padding */
+        .nav-link:hover, .nav-link.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; transform: translateY(-2px); }
+
+        /* Main content & page styles */
+        .main-content { margin-top: 80px; min-height: calc(100vh - 80px); padding-bottom: 40px;}
+        .page { display: none; animation: fadeIn 0.5s ease-in-out; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Hero section styles */
+        .hero { text-align: center; padding: 80px 0; color: white; }
+        .hero h1 { font-size: 48px; margin-bottom: 20px; opacity: 0; animation: slideInDown 1s ease-out 0.5s forwards; }
+        .hero p { font-size: 20px; margin-bottom: 40px; opacity: 0; animation: slideInUp 1s ease-out 0.7s forwards; }
+        .cta-button { background: white; color: #667eea; padding: 15px 40px; border: none; border-radius: 25px; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.1); text-decoration: none; }
+        .cta-button:hover { background: #f0f0f0; transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        @keyframes slideInDown { from { opacity: 0; transform: translateY(-50px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Data input module styles */
+        .module-header { background: rgba(255, 255, 255, 0.95); padding: 30px 40px; border-radius: 20px; margin: 30px 0; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .module-header h2 { margin-bottom: 10px; color: #667eea; }
+        .upload-area { background: rgba(255, 255, 255, 0.95); border: 3px dashed #667eea; border-radius: 20px; padding: 50px; text-align: center; margin: 20px 0 30px 0; cursor: pointer; transition: all 0.3s ease; }
+        .upload-area:hover { border-color: #764ba2; background: rgba(255, 255, 255, 1); transform: scale(1.02); }
+        .upload-icon { font-size: 48px; color: #667eea; margin-bottom: 15px; }
+        .upload-area h3 { margin-bottom: 10px; }
+
+        /* Processing visualization styles */
+        .processing-visualization { background: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 15px; margin: 30px 0; box-shadow: 0 5px 20px rgba(0,0,0,0.08); display: none; }
+        .processing-visualization h4 { color: #667eea; margin-bottom: 15px; text-align: center; }
+        .processing-step-visual { display: flex; align-items: center; padding: 15px; background: #f8f9fa; border-radius: 10px; margin-bottom: 15px; opacity: 0; transform: translateX(-20px); transition: opacity 0.5s ease, transform 0.5s ease; }
+        .processing-step-visual.visible { opacity: 1; transform: translateX(0); }
+        .processing-step-visual .icon { font-size: 24px; margin-right: 15px; color: #764ba2; width: 40px; text-align: center; }
+        .processing-step-visual .text { font-size: 16px; }
+        .processing-step-visual .status { margin-left: auto; font-style: italic; color: #555; }
+
+        /* Progress bar styles */
+        .progress-bar-container { margin: 25px 0; }
+        .progress-bar { width: 100%; height: 10px; background: #e0e0e0; border-radius: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(135deg, #667eea, #764ba2); width: 0%; transition: width 0.5s ease-in-out; }
+
+        /* Results area and data table styles */
+        .results-area { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 30px; margin: 30px 0; display: none; }
+        .results-area.show { display: block; animation: fadeIn 0.5s ease-in-out; }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .data-table th, .data-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        .data-table th { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .account-link-simulation { color: #007bff; text-decoration: underline; cursor: pointer; font-weight: 500; }
+        .account-link-simulation:hover { color: #0056b3; }
+
+        /* Data flow & status panel styles */
+        .data-flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
+        .flow-item { background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 15px; text-align: center; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.07); transition: transform 0.3s ease; }
+        .flow-item:hover { transform: translateY(-5px); }
+        .flow-item h4 { color: #667eea; margin-bottom: 8px; }
+        .flow-item::after { content: '➔'; position: absolute; right: -18px; top: 50%; transform: translateY(-50%); font-size: 28px; color: #667eea; opacity: 0.6; }
+        .flow-item:last-child::after { display: none; }
+        .status-panel { background: rgba(255, 255, 255, 0.95); border-radius: 15px; padding: 25px; margin: 30px 0; box-shadow: 0 5px 20px rgba(0,0,0,0.08); }
+        .status-panel h3 { margin-bottom: 20px; color: #764ba2; text-align: center;}
+        .status-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .status-item:last-child { border-bottom: none; }
+        .status-indicator { width: 12px; height: 12px; border-radius: 50%; background: #4CAF50; margin-right: 10px; flex-shrink: 0; }
+        .status-indicator.warning { background: #FFC107; }
+        .status-indicator.error { background: #F44336; }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 24px; height: 24px; border-radius: 50%; border-left-color: #667eea; animation: spin 1s ease infinite; margin-right: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Automated finding card styles - Refined */
+        .automated-finding-card { background: #fff; border: 1px solid #e0e0e0; padding: 25px; border-radius: 12px; margin: 25px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        .finding-header { display: flex; align-items: center; margin-bottom: 18px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .finding-header .icon { font-size: 28px; margin-right: 15px; }
+        .finding-header .title { font-size: 1.3em; font-weight: 600; color: #333; }
+        .finding-header .priority-tag { margin-left: auto; padding: 5px 12px; border-radius: 15px; font-size: 0.85em; font-weight: 500; color: #fff; }
+        .priority-tag.high { background-color: #F44336; }
+        .priority-tag.medium { background-color: #FF9800; }
+        .priority-tag.low { background-color: #4CAF50; } /* Added for under-budget if needed */
+        .finding-content { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .finding-section { margin-bottom: 10px; }
+        .finding-section h6 { font-size: 1.0em; color: #667eea; margin-bottom: 8px; font-weight: 600; }
+        .finding-section p, .finding-section ul { line-height: 1.7; color: #555; font-size: 0.95em; margin-bottom: 8px; }
+        .finding-section ul { list-style-position: inside; padding-left: 5px; }
+        .finding-section ul li { margin-bottom: 5px; }
+        .key-data-highlight { background: rgba(102, 126, 234, 0.08); padding: 3px 6px; border-radius: 4px; font-weight: bold; color: #667eea; }
+        .important-note { background: rgba(255, 152, 0, 0.08); padding: 3px 6px; border-radius: 4px; font-weight: bold; color: #FF9800; }
+        .important-note.over { color: #F44336; background: rgba(244, 67, 54, 0.08);}
+        .important-note.under { color: #FF9800; background: rgba(255, 152, 0, 0.08); }
+
+        .finding-actions { margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; display: flex; gap: 15px; flex-wrap: wrap; }
+        .action-button-sim { background: #667eea; color: white; padding: 10px 18px; border: none; border-radius: 20px; font-size: 0.9em; font-weight: 500; cursor: pointer; transition: all 0.3s ease; text-decoration: none; }
+        .action-button-sim:hover { background: #5a6fcf; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .action-button-sim.secondary { background: #f0f0f0; color: #555; }
+        .action-button-sim.secondary:hover { background: #e0e0e0; }
+        .action-button-sim.actioned {
+            background: #d6d6d6;
+            color: #777;
+            cursor: default;
+            pointer-events: none;
+        }
+         .action-button-sim.actioned:hover {
+            background: #d6d6d6;
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            animation: fadeInModal 0.3s ease-out;
+        }
+        @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 8% auto;
+            padding: 25px 30px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 700px;
+            border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            position: relative;
+            animation: slideInModal 0.4s ease-out;
+        }
+        @keyframes slideInModal { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .modal-close-btn {
+            color: #aaa;
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 32px;
+            font-weight: bold;
+            transition: color 0.2s ease;
+        }
+        .modal-close-btn:hover,
+        .modal-close-btn:focus {
+            color: #555;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        #modalTitle {
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 1.6em;
+        }
+        #modalBody {
+            max-height: 60vh;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+        #modalBody table.modal-table { /* More specific selector */
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+        }
+        #modalBody table.modal-table th, /* More specific selector */
+        #modalBody table.modal-table td { /* More specific selector */
+            border: 1px solid #ddd;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 0.95em;
+        }
+        #modalBody table.modal-table th { /* More specific selector */
+            background-color: #f4f6f8;
+            color: #333;
+            font-weight: 600;
+        }
+         #modalBody table.modal-table .total-row td { /* More specific selector */
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        #modalBody .log-entry { padding: 8px 0; border-bottom: 1px dashed #eee; }
+        #modalBody .log-entry:last-child { border-bottom: none; }
+        #modalBody .log-timestamp { font-size: 0.8em; color: #888; margin-right: 10px; }
+        #modalBody .log-highlight, #modalBody .policy-keyword { color: #764ba2; font-weight: bold; }
+        #modalBody .log-conclusion, #modalBody .policy-review-conclusion { margin-top:15px; padding:10px; background-color: #f0f8ff; border-left: 3px solid #667eea; font-style: italic; }
+        #modalBody .risk-summary-section h5, #modalBody .policy-section h5, #modalBody .assignment-section h5 { color: #667eea; margin-top: 15px; margin-bottom: 8px; padding-bottom: 3px; border-bottom: 1px solid #eee; }
+         #modalBody .risk-summary-section ul, #modalBody .policy-section ul, #modalBody .assignment-section ul { list-style-type: none; margin-left: 0; padding-left: 0px; }
+        #modalBody .risk-summary-section ul li, #modalBody .policy-section ul li { margin-bottom: 5px; margin-left:20px; list-style-type:disc;}
+         #modalBody .assignment-section ul li {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius:5px;
+            display:flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #modalBody .policy-excerpt { background-color: #f9f9f9; border: 1px solid #e7e7e7; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 0.9em; }
+        #modalBody .system-check { background-color: #fff8e1; border: 1px solid #ffe082; padding: 8px; margin-top: 5px; border-radius: 4px; font-size: 0.85em; }
+         #modalBody .system-check strong { color: #FF9800; }
+         .send-email-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 15px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            text-decoration: none; /* For <a> tags styled as buttons */
+        }
+        .send-email-btn:hover {
+            background-color: #218838;
+        }
+         #modalBody .assignment-description {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        /* Budget Control Page Specific Styles */
+        .budget-input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        .budget-input-box { background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.07); }
+        .budget-input-box h4 { color: #667eea; margin-bottom: 15px; text-align: center; }
+        .budget-input-box .api-status { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f0f0f0; border-radius: 8px; margin-bottom: 15px; }
+        .budget-input-box .api-status span:last-child { font-weight: bold; color: #4CAF50; }
+        .budget-input-box .excel-select-area { border: 2px dashed #ccc; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 15px; cursor: pointer; }
+        .budget-input-box .excel-select-area:hover { border-color: #667eea; }
+        .budget-input-box .action-button-sim { display: block; width: 100%; text-align: center; }
+
+        .budget-processing-status { background: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 15px; margin: 20px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.07); }
+        .budget-processing-status h4 { color: #667eea; margin-bottom: 15px; text-align: center; }
+        .budget-processing-status .progress-bar-container { margin: 15px 0 0 0; }
+        .budget-processing-status .status-item { padding: 8px 0; font-size: 0.95em; }
+        .budget-processing-status .status-item span:first-child { color: #555; }
+        .budget-processing-status .status-item span:last-child { float: right; font-weight: bold; color: #764ba2; }
+
+        .budget-dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .budget-chart-container { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        .budget-chart-container h5 { color: #667eea; margin-bottom: 15px; text-align: center; }
+        .budget-execution-chart .bar-group { margin-bottom: 10px; display: flex; align-items: center; }
+        .budget-execution-chart .bar-label { width: 80px; font-size: 0.85em; color: #555; white-space: nowrap; }
+        .budget-execution-chart .bar-wrapper { flex-grow: 1; background: #e0e0e0; border-radius: 5px; height: 20px; overflow: hidden; position: relative; }
+        .budget-execution-chart .bar { background: linear-gradient(135deg, #667eea, #764ba2); height: 100%; border-radius: 5px 0 0 5px; transition: width 0.5s ease; text-align: right; padding-right: 5px; color: white; font-size: 0.8em; line-height: 20px;}
+        .budget-execution-chart .bar.over-budget { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
+        .budget-execution-chart .percentage-label { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); color: white; font-size: 0.8em; font-weight: bold; }
+
+
+        .budget-variance-alerts .alert-item { background: #fff3cd; border-left: 5px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.2s ease; }
+        .budget-variance-alerts .alert-item:hover { transform: translateY(-2px); }
+        .budget-variance-alerts .alert-item.high-alert { background: #f8d7da; border-left-color: #f5c6cb;}
+        .budget-variance-alerts .alert-item h6 { margin-bottom: 5px; color: #856404; }
+        .budget-variance-alerts .alert-item.high-alert h6 { color: #721c24; }
+        .budget-variance-alerts .alert-item p { font-size: 0.9em; color: #555; }
+
+        .budget-stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 20px; }
+        .budget-stat-card { background: #fff; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        .budget-stat-card .value { font-size: 2em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
+        .budget-stat-card .value.red { color: #F44336; }
+        .budget-stat-card .value.orange { color: #FF9800; }
+        .budget-stat-card .label { font-size: 0.9em; color: #777; }
+        .budget-stat-card.clickable:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); cursor:pointer; }
+
+
+        .trend-chart-placeholder { height: 200px; background: #f0f0f0; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #aaa; font-style: italic; margin-top:10px; background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22100%25%22%20height%3D%22100%25%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cdefs%3E%3Cpattern%20id%3D%22smallGrid%22%20width%3D%2210%22%20height%3D%2210%22%20patternUnits%3D%22userSpaceOnUse%22%3E%3Cpath%20d%3D%22M%2010%200%20L%200%200%200%2010%22%20fill%3D%22none%22%20stroke%3D%22%23e0e0e0%22%20stroke-width%3D%220.5%22/%3E%3C/pattern%3E%3Cpattern%20id%3D%22grid%22%20width%3D%2250%22%20height%3D%2250%22%20patternUnits%3D%22userSpaceOnUse%22%3E%3Crect%20width%3D%2250%22%20height%3D%2250%22%20fill%3D%22url(%23smallGrid)%22/%3E%3Cpath%20d%3D%22M%2050%200%20L%200%200%200%2050%22%20fill%3D%22none%22%20stroke%3D%22%23cccccc%22%20stroke-width%3D%221%22/%3E%3C/pattern%3E%3C/defs%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22url(%23grid)%22%20/%3E%3Cpolyline%20fill%3D%22none%22%20stroke%3D%22%23667eea%22%20stroke-width%3D%222%22%20points%3D%2210,150%2050,120%20100,140%20150,90%20200,110%20250,80%22%20/%3E%3Cpolyline%20fill%3D%22none%22%20stroke%3D%22%23FF9800%22%20stroke-width%3D%222%22%20stroke-dasharray%3D%224%22%20points%3D%22250,80%20280,70%20310,90%22%20/%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20text-anchor%3D%22middle%22%20fill%3D%22%23aaa%22%20font-size%3D%2214%22%20font-style%3D%22italic%22%3E预算趋势预测图 (示意)%3C/text%3E%3C/svg%3E'); background-size: cover; background-repeat: no-repeat; background-position: center;}
+
+        /* International Page Specific Styles */
+        .config-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.07);
+        }
+        .config-section h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .config-section label {
+            font-weight: 500;
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .config-section select, .config-section input[type="text"], .config-section input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+        .config-section .info-display p {
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        .config-section .info-display p strong {
+            color: #764ba2;
+        }
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .config-subsection {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        .config-subsection h5 {
+            color: #764ba2;
+            margin-bottom: 10px;
+        }
+        #modalBody .form-group { margin-bottom: 15px; }
+        #modalBody .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #555;}
+        #modalBody .form-group select, #modalBody .form-group input, #modalBody .form-group textarea { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+        #modalBody .form-group textarea { min-height: 80px; }
+
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; } /* Keep this if hamburger menu not implemented */
+            .hero h1 { font-size: 36px; } .hero p { font-size: 18px; }
+            .cta-button { font-size: 16px; padding: 12px 30px;}
+            .data-flow { grid-template-columns: 1fr; } .flow-item::after { display: none; }
+            .module-header { padding: 20px; } .upload-area { padding: 30px; }
+            .finding-content { grid-template-columns: 1fr; }
+            .modal-content { width: 90%; margin: 10% auto; }
+            #modalTitle { font-size: 1.4em; }
+            .budget-input-grid { grid-template-columns: 1fr; }
+            .config-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar"> <div class="container"> <div class="nav-content"> <div class="logo">财务智能审核系统</div> <div class="nav-links"> <a class="nav-link active" data-page="home">首页</a> <a class="nav-link" data-page="data-input">报表审核</a> <a class="nav-link" data-page="budget-control">预算控制</a> <a class="nav-link" data-page="international-version">国际版本</a> </div> </div> </div> </nav>
+
+    <main class="main-content">
+        <div class="page active" id="home"> <div class="container"> <div class="hero"> <h1>智能财务报表平台</h1> <p>基于OCR与大模型的新一代财务数字化解决方案</p> <button class="cta-button" onclick="showPage('data-input')">开始体验智能解析</button> </div> </div> </div>
+        <div class="page" id="data-input">
+            <div class="container">
+                <div class="module-header"> <h2>数据输入与处理流程</h2> <p>上传您的财务报表，系统将自动完成解析、结构化和深度智能分析。</p> </div>
+                <div class="upload-area" id="uploadArea"> <div class="upload-icon">📁</div> <h3>点击上传财务报表</h3> <p>支持 PDF, JPG, PNG 等扫描件或电子文档</p> </div>
+                <div class="progress-bar-container" id="progressBarContainer" style="display: none;"> <div class="progress-bar"> <div class="progress-fill" id="overallProgress"></div> </div> </div>
+                <div class="processing-visualization" id="processingVisualization"><h4>实时处理进度</h4> <div id="uploadVisual" class="processing-step-visual"> <div class="icon">📤</div> <div class="text">文件上传中...</div> <div class="status" id="uploadFileName">财务报表_年度.pdf</div> </div> <div id="ocrVisual" class="processing-step-visual"> <div class="icon">🔍</div> <div class="text">智能OCR识别：提取文本与数据...</div> <div class="status">进行中</div> </div> <div id="structureVisual" class="processing-step-visual"> <div class="icon">📊</div> <div class="text">表格结构还原与附注内容解析...</div> <div class="status">进行中</div> </div> <div id="outputVisual" class="processing-step-visual"> <div class="icon">📄</div> <div class="text">初步结构化数据生成...</div> <div class="status">进行中</div> </div> </div>
+                <div class="results-area" id="ocrResultsArea"> <h3>初步解析结果</h3> <div id="ocrOutput"></div> </div>
+                <div id="modelingSection" style="display:none;">
+                     <div class="module-header" style="margin-top: 50px;"> <h2>数据结构化与智能分析</h2> <p>对解析数据进行清洗、校验、建模，并结合大模型进行深度分析与洞察。</p> </div>
+                    <div class="data-flow"> <div class="flow-item"> <h4>数据清洗</h4> <p>规范格式,去冗余</p> </div> <div class="flow-item"> <h4>完整性与平衡校验</h4> <p>关键字段,勾稽关系</p> </div> <div class="flow-item"> <h4>科目标准化映射</h4> <p>统一会计准则</p> </div> <div class="flow-item"> <h4>AI驱动深度分析</h4> <p>风险识别,智能解释</p> </div> </div>
+                    <div class="status-panel" id="modelingStatus"> <h3>基础校验与处理状态</h3> <div class="status-item"> <span><span class="status-indicator"></span>资产负债表平衡校验</span> <span id="balanceSheetStatus">处理中...</span> </div> <div class="status-item"> <span><span class="status-indicator warning"></span>利润表主要勾稽关系</span> <span id="incomeStatementStatus">处理中...</span> </div> <div class="status-item"> <span><span class="status-indicator"></span>现金流量表数据核对</span> <span id="cashFlowStatus">处理中...</span> </div> <div class="status-item"> <span><span class="status-indicator"></span>数据质量综合评估</span> <span id="dataQualityStatus">评估中...</span> </div> </div>
+                    <div class="results-area" id="modelingResultsArea" style="padding-bottom: 50px;"> <h3>深度智能分析与审计洞察</h3> <div id="modelingOutput"></div> </div>
+                </div>
+            </div>
+        </div>
+        <div class="page" id="budget-control">
+            <div class="container">
+                <div class="module-header">
+                    <h2>预算控制审核</h2>
+                    <p>集成企业预算数据，对比实际发生，智能分析偏差并辅助决策。</p>
+                </div>
+
+                <div class="budget-input-grid">
+                    <div class="budget-input-box">
+                        <h4>预算管理系统对接</h4>
+                        <div class="api-status"><span>API连接状态：</span><span id="budgetApiStatus">已连接</span></div>
+                        <button class="action-button-sim" id="syncBudgetSystemBtn">同步最新预算数据</button>
+                    </div>
+                    <div class="budget-input-box">
+                        <h4>预算表格导入</h4>
+                        <div class="excel-select-area" id="budgetExcelUpload">点击选择Excel文件</div>
+                        <button class="action-button-sim" id="importBudgetExcelBtn">导入预算表</button>
+                    </div>
+                </div>
+
+                <div class="budget-processing-status" id="budgetProcessingStatus" style="display: none;">
+                    <h4>数据处理状态</h4>
+                    <p id="budgetProcessingText">正在处理预算数据...</p>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar"><div class="progress-fill" id="budgetProgressFill"></div></div>
+                    </div>
+                    <div class="status-item"><span>部门预算数据：</span><span id="deptBudgetStatus">等待导入</span></div>
+                    <div class="status-item"><span>实际发生数：</span><span id="actualsSyncStatus">等待同步</span></div>
+                </div>
+
+                <div id="budgetDashboard" style="display:none;">
+                    <div class="module-header" style="margin-top:40px;">
+                        <h2>预算执行与分析看板</h2>
+                    </div>
+                    <div class="budget-dashboard-grid">
+                        <div class="budget-chart-container">
+                            <h5>各部门预算执行率</h5>
+                            <div class="budget-execution-chart" id="deptExecutionChart">
+                                 </div>
+                        </div>
+                        <div class="budget-chart-container">
+                            <h5>预算偏差警告</h5>
+                            <div class="budget-variance-alerts" id="varianceAlertsPanel">
+                                 </div>
+                        </div>
+                    </div>
+                    <div class="budget-stats-container" id="budgetStatsCards">
+                         </div>
+                </div>
+
+                <div id="budgetDetailedAnalysisSection" class="results-area" style="margin-top: 30px;">
+                   <div id="budgetAnalysisOutput">
+                         </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="page" id="international-version">
+            <div class="container">
+                <div class="module-header">
+                    <h2>国际化财务适配与审核</h2>
+                    <p>支持多法人、多账套、多准则、多币种的复杂财务环境，实现集团统一化智能审核。</p>
+                </div>
+
+                <div class="config-section">
+                    <h4>实体选择与基础配置 (Entity Selection & Basic Configuration)</h4>
+                    <label for="entitySelect">选择操作实体 (Select Entity):</label>
+                    <select id="entitySelect">
+                        <option value="entityA">子公司A (中国, CAS, CNY)</option>
+                        <option value="entityB">Subsidiary B (USA, IFRS, USD)</option>
+                        <option value="entityC">Branch C (Europe, IFRS, EUR)</option>
+                    </select>
+                    <div class="info-display" id="entityBasicInfoDisplay" style="margin-top:15px; padding:10px; background-color:#f8f9fa; border-radius:8px;">
+                        <p><strong>当前实体:</strong> <span id="dispEntityName">子公司A (中国, CAS, CNY)</span></p>
+                        <p><strong>会计准则:</strong> <span id="dispAccountingStandard">中国会计准则 (CAS)</span></p>
+                        <p><strong>报告币种:</strong> <span id="dispReportingCurrency">人民币 (CNY)</span></p>
+                    </div>
+                </div>
+
+                <div class="config-grid">
+                    <div class="config-section">
+                        <h4>① 科目体系适配 (Chart of Accounts Adaptation)</h4>
+                        <p>根据单位标识选取对应规则体系，自动转换原始科目为集团统一口径科目。</p>
+                        <button class="action-button-sim" id="viewCoaMappingBtn" style="margin-top:10px;">查看科目映射表示例</button>
+                        <div class="config-subsection" style="margin-top:15px;">
+                            <h5>单位特定审核规则 (Entity-Specific Audit Rules)</h5>
+                            <p id="entitySpecificRulesText">子公司A: 启用中国特色增值税相关审核规则，关注研发费用加计扣除合规性。</p>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h4>② 多准则支持 (Multi-Standard Support)</h4>
+                        <p>按单位配置执行不同会计准则规则集 (CAS, IFRS等)。</p>
+                        <div class="info-display" style="margin-top:10px;">
+                            <p><strong>当前选用准则库:</strong> <span id="selectedStandardLib">中国会计准则 (CAS) 规则集</span></p>
+                        </div>
+                        <div class="config-subsection" style="margin-top:15px;">
+                            <h5>准则特定审核点示例 (Standard-Specific Audit Points)</h5>
+                            <ul id="standardSpecificPointsList" style="font-size:0.9em; list-style-type: disc; padding-left:20px;">
+                                <li>固定资产折旧年限与残值率符合CAS规定。</li>
+                                <li>收入确认满足CAS条件，特别是特定行业的收入确认方法。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h4>③ 多币种处理 (Multi-Currency Handling)</h4>
+                    <p>自动识别报表币种，支持汇率折算，实现统一币种分析与对比。</p>
+                    <div class="config-grid">
+                        <div class="config-subsection">
+                            <h5>币种信息</h5>
+                            <p><strong>原始报表币种:</strong> <span id="sourceCurrencyDisplay">人民币 (CNY)</span></p>
+                            <p><strong>集团统一分析币种 (模拟):</strong> 人民币 (CNY)</p>
+                        </div>
+                        <div class="config-subsection" id="currencyConversionSection">
+                            <h5>模拟币种折算 (Simulate Conversion)</h5>
+                            <label for="exchangeRateInput">输入 <span id="inputRateFromCurrency">USD</span> 到 <span id="inputRateToCurrency">CNY</span> 汇率:</label>
+                            <input type="number" id="exchangeRateInput" value="7.10" step="0.01" style="width: auto; display: inline-block; margin-right:10px; max-width:100px;" disabled>
+                            <button class="action-button-sim secondary" id="simulateConversionBtn" style="padding: 8px 12px;" disabled>折算</button>
+                            <div id="conversionResultDisplay" style="margin-top:10px; font-size:0.9em;">
+                                </div>
+                        </div>
+                    </div>
+                     <p style="margin-top:15px; font-size:0.9em;"><strong>对比模式:</strong> 系统支持在审核时选择“原币对比”或“折算后对比”模式，以适应不同分析需求。</p>
+                </div>
+
+                <div class="config-section">
+                    <h4>④ 参数化配置中心 (Parameterized Configuration Center)</h4>
+                    <p>通过可视化界面为每个单位独立设置审核参数，实现灵活接入与管理。</p>
+                    <div style="margin-top:15px;">
+                        <button class="action-button-sim" id="manageEntityConfigBtn">管理实体配置 (模拟)</button>
+                        <button class="action-button-sim secondary" id="newEntityWizardBtn" style="margin-left:10px;">新增单位向导 (模拟)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </main>
+
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close-btn" id="modalCloseBtn">&times;</span>
+            <h3 id="modalTitle">详细信息</h3>
+            <div id="modalBody">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Page Navigation & Basic Demo Control (mostly unchanged) ---
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            const activeLink = document.querySelector(`.nav-link[data-page="${pageId}"]`);
+            if (activeLink) activeLink.classList.add('active');
+
+            if (pageId === 'data-input') {
+                // resetDataInputDemo(); // Potentially call if needed
+            } else if (pageId === 'budget-control') {
+                resetBudgetControlDemo();
+            } else if (pageId === 'international-version') {
+                resetInternationalVersionDemo(); // Initialize or reset the new page
+                initializeInternationalPage();
+            } else if (pageId === 'home') {
+                 resetDataInputDemo();
+                 resetBudgetControlDemo();
+                 resetInternationalVersionDemo();
+            }
+        }
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => { e.preventDefault(); const pageId = link.getAttribute('data-page'); showPage(pageId); });
+        });
+
+        const uploadArea = document.getElementById('uploadArea');
+        const progressBarContainer = document.getElementById('progressBarContainer');
+        const overallProgress = document.getElementById('overallProgress');
+        const processingVisualization = document.getElementById('processingVisualization');
+        const uploadVisual = document.getElementById('uploadVisual');
+        const ocrVisual = document.getElementById('ocrVisual');
+        const structureVisual = document.getElementById('structureVisual');
+        const outputVisual = document.getElementById('outputVisual');
+        const ocrResultsArea = document.getElementById('ocrResultsArea');
+        const ocrOutput = document.getElementById('ocrOutput');
+        const modelingSection = document.getElementById('modelingSection');
+        const modelingStatus = document.getElementById('modelingStatus');
+        const modelingResultsArea = document.getElementById('modelingResultsArea');
+        const modelingOutput = document.getElementById('modelingOutput');
+        let demoInProgress = false;
+
+        function resetDataInputDemo() {
+            demoInProgress = false;
+            if(uploadArea) uploadArea.style.display = 'block';
+            if(progressBarContainer) progressBarContainer.style.display = 'none';
+            if(overallProgress) overallProgress.style.width = '0%';
+            if(processingVisualization) processingVisualization.style.display = 'none';
+            [uploadVisual, ocrVisual, structureVisual, outputVisual].forEach(el => {
+                if (!el) return;
+                el.classList.remove('visible');
+                if (el.querySelector('.status')) el.querySelector('.status').textContent = '等待中';
+            });
+            if (uploadVisual && uploadVisual.querySelector('.status')) uploadVisual.querySelector('.status').textContent = '财务报表_年度.pdf';
+            if (ocrVisual && ocrVisual.querySelector('.status')) ocrVisual.querySelector('.status').textContent = '进行中';
+            if (structureVisual && structureVisual.querySelector('.status')) structureVisual.querySelector('.status').textContent = '进行中';
+            if (outputVisual && outputVisual.querySelector('.status')) outputVisual.querySelector('.status').textContent = '进行中';
+            if(ocrResultsArea) ocrResultsArea.classList.remove('show');
+            if(ocrOutput) ocrOutput.innerHTML = '';
+            if(modelingSection) modelingSection.style.display = 'none';
+            ['balanceSheetStatus', 'incomeStatementStatus', 'cashFlowStatus', 'dataQualityStatus'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.textContent = id === 'dataQualityStatus' ? '评估中...' : '处理中...';
+                    const indicator = el.previousElementSibling.querySelector('.status-indicator');
+                    if (indicator) indicator.className = `status-indicator ${id === 'incomeStatementStatus' ? 'warning' : ''}`;
+                }
+            });
+            if(modelingResultsArea) modelingResultsArea.classList.remove('show');
+            if(modelingOutput) modelingOutput.innerHTML = '';
+        }
+
+        if(uploadArea) uploadArea.addEventListener('click', () => { if (!demoInProgress) startDataInputProcess(); });
+
+        function updateVisualStep(element, text, statusText = "完成", delay = 0) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    if (!element) { resolve(); return; }
+                    element.classList.add('visible');
+                    if (text && element.querySelector('.text')) element.querySelector('.text').textContent = text;
+                    if (element.querySelector('.status')) {
+                         element.querySelector('.status').innerHTML = statusText.includes("进行中") || statusText.includes("等待中") || statusText.includes(".pdf") ? statusText : `<span style="color: #28a745; font-weight: bold;">${statusText} ✓</span>`;
+                    }
+                    resolve();
+                }, delay);
+            });
+        }
+
+        // --- Modal Control Functions ---
+        const detailModal = document.getElementById('detailModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+        if(modalCloseBtn) modalCloseBtn.onclick = () => closeModal();
+        window.onclick = (event) => {
+            if (event.target == detailModal) {
+                closeModal();
+            }
+        };
+        function openModal(title, contentHtml, callback) {
+            if (!detailModal || !modalTitle || !modalBody) return;
+            modalTitle.textContent = title;
+            modalBody.innerHTML = contentHtml;
+            detailModal.style.display = 'block';
+            if (callback && typeof callback === 'function') {
+                callback(); // Execute callback after modal content is loaded
+            }
+        }
+        function closeModal() {
+            if (!detailModal) return;
+            detailModal.style.display = 'none';
+            if(modalTitle) modalTitle.textContent = '';
+            if(modalBody) modalBody.innerHTML = '';
+        }
+
+        // --- Mock Data and Detail View Generators (Original) ---
+        const mockFinancialData = {
+            "货币资金": { total: 12345678.90, breakdown: [{ item: "库存现金", amount: 50000.00 }, { item: "银行存款 - 中国工商银行 A支行", account: "xxx-1234", amount: 8250000.00 }, { item: "银行存款 - 中国建设银行 B支行", account: "yyy-5678", amount: 3045678.90 }, { item: "其他货币资金 - 支付宝余额", amount: 1000000.00 }] },
+            "应收票据及应收账款": { total: 8765432.10, breakdown: [{ type: "应收票据", customer: "客户A公司", dueDate: "2025-07-15", amount: 2000000.00 }, { type: "应收账款", customer: "客户B公司 (账龄1-3个月)", amount: 3500000.00 }, { type: "应收账款", customer: "客户C公司 (账龄3-6个月)", amount: 1265432.10 }, { type: "应收账款", customer: "客户D公司 (账龄1年以上，已计提坏账)", amount: 2000000.00 }] },
+            "存货": { total: 25430120.50, breakdown: [{ category: "原材料 - X型材料", quantity: "500 吨", unitCost: "¥10,000/吨", value: 5000000.00 }, { category: "在产品 - Y型半成品", batch: "202505A", progress: "60%", value: 8430120.50 }, { category: "产成品 - Z型产品", quantity: "1000 件", unitCost: "¥12,000/件", value: 12000000.00 }] },
+            "固定资产净额": { total: 45678901.23, note: "主要包括生产设备、办公楼等，本期计提折旧 ¥2,500,000。" },
+            "营业收入": { total: 150321678.00, note: "主营业务收入占比95%，其他业务收入占比5%。" },
+            "营业利润": { total: 5120300.00 },
+            "净利润": { total: 3550800.00 }
+        };
+
+        function generateAccountDetailHtml(accountName) {
+            const data = mockFinancialData[accountName];
+            if (!data) return "<p>暂无该科目的详细信息。</p>";
+            let html = `<h4>${accountName} - 明细 (模拟数据)</h4><p><strong>总金额: ${data.total ? data.total.toLocaleString('en-US', { style: 'currency', currency: 'CNY' }) : 'N/A'}</strong></p>`;
+            if (data.note) html += `<p>${data.note}</p>`;
+            if (data.breakdown && data.breakdown.length > 0) {
+                html += `<table class="modal-table"><thead><tr>`;
+                const headers = Object.keys(data.breakdown[0]);
+                headers.forEach(header => html += `<th>${header.charAt(0).toUpperCase() + header.slice(1)}</th>`);
+                html += `</tr></thead><tbody>`;
+                data.breakdown.forEach(item => {
+                    html += `<tr>`;
+                    headers.forEach(header => {
+                        let value = item[header];
+                        if (typeof value === 'number' && (header.toLowerCase().includes('amount') || header.toLowerCase().includes('value'))) value = value.toLocaleString('en-US', { style: 'currency', currency: 'CNY' });
+                        html += `<td>${value !== undefined ? value : '-'}</td>`;
+                    });
+                    html += `</tr>`;
+                });
+                html += `</tbody></table>`;
+            }
+            return html;
+        }
+
+        function generateIncomeStatementDetailHtml() {
+            const revenue = 150321678.00, costOfSales = 110500000.00, assetImpairmentLoss = 10000000.00, otherOperatingIncome = 500000.00, finalOperatingProfit = 5120300.00, financeCosts = 800000.00, nonOperatingIncome = 200000.00, nonOperatingExpenses = 100000.00, finalPBT = 4734400.00, incomeTaxRate = 0.25, finalIncomeTax = finalPBT * incomeTaxRate, finalNetProfit = 3550800.00;
+            return `<h4>利润表详细科目 (模拟数据)</h4><p>期间：本报告期</p><table class="modal-table"><thead><tr><th>项目</th><th>金额 (CNY)</th><th>备注</th></tr></thead><tbody><tr><td>一、营业总收入</td><td>${revenue.toLocaleString()}</td><td></td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;营业收入</td><td>${revenue.toLocaleString()}</td><td></td></tr><tr><td>二、营业总成本</td><td>${(costOfSales + 200000 + 8000000 + 7000000 + 5000000 + financeCosts + assetImpairmentLoss).toLocaleString()}</td><td></td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;营业成本</td><td>${costOfSales.toLocaleString()}</td><td></td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;税金及附加</td><td>${(200000).toLocaleString()}</td><td>模拟</td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;销售费用</td><td>${(8000000).toLocaleString()}</td><td>模拟</td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;管理费用</td><td>${(7000000).toLocaleString()}</td><td>模拟</td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;研发费用</td><td>${(5000000).toLocaleString()}</td><td>模拟</td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;财务费用</td><td>${financeCosts.toLocaleString()}</td><td></td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;其中：利息费用</td><td>${(750000).toLocaleString()}</td><td>模拟</td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;资产减值损失</td><td><strong style="color:red;">${assetImpairmentLoss.toLocaleString()}</strong></td><td>主要为存货跌价准备</td></tr><tr><td>加：其他收益</td><td>${otherOperatingIncome.toLocaleString()}</td><td></td></tr><tr><td>三、营业利润</td><td><strong>${finalOperatingProfit.toLocaleString()}</strong></td><td></td></tr><tr><td>加：营业外收入</td><td>${nonOperatingIncome.toLocaleString()}</td><td></td></tr><tr><td>减：营业外支出</td><td>${nonOperatingExpenses.toLocaleString()}</td><td></td></tr><tr><td>四、利润总额</td><td><strong>${finalPBT.toLocaleString()}</strong></td><td></td></tr><tr><td>减：所得税费用</td><td>${finalIncomeTax.toLocaleString()}</td><td>按25%税率计算</td></tr><tr class="total-row"><td>五、净利润</td><td><strong>${finalNetProfit.toLocaleString()}</strong></td><td></td></tr></tbody></table>`;
+        }
+
+        function generateInventoryImpairmentDetailHtml() {
+            const totalImpairment = 10000000.00;
+            return `<h4>存货跌价准备计提详情 (模拟数据)</h4><p><strong>本期计提总额: ${totalImpairment.toLocaleString('en-US', { style: 'currency', currency: 'CNY' })}</strong></p><p>根据企业会计准则及公司存货管理政策，对年末存在减值迹象的存货进行了减值测试，计提明细如下：</p><table class="modal-table"><thead><tr><th>存货类别/名称</th><th>账面成本 (CNY)</th><th>可变现净值 (CNY)</th><th>计提跌价准备 (CNY)</th><th>减值原因</th></tr></thead><tbody><tr><td>过时产成品 - 型号RX-2021</td><td>8,000,000</td><td>2,000,000</td><td><strong style="color:red;">6,000,000</strong></td><td>技术迭代，市场需求下降</td></tr><tr><td>残次原材料 - 批号MT-05B</td><td>5,500,000</td><td>1,500,000</td><td><strong style="color:red;">4,000,000</strong></td><td>运输途中受潮损坏</td></tr><tr class="total-row"><td>合计</td><td>13,500,000</td><td>3,500,000</td><td><strong>10,000,000</strong></td><td></td></tr></tbody></table><p style="margin-top:15px;"><strong>管理层说明：</strong>上述存货跌价准备的计提已经过内部审批流程，并由审计委员会审阅。公司将加强对存货库龄和市场变化的监控，以优化存货管理。 </p>`;
+        }
+
+        function generateNotesCheckDetailHtml() {
+            let ts = () => new Date().toLocaleTimeString();
+            return `<div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: 正在启动附注原文与财务数据交叉验证程序...</div><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: 目标：核实附注中披露的“重大或有负债”事项与资产负债表项目的对应关系。</div><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: 定位附注章节：<span class="log-highlight">或有事项 (附注 X.Y.Z)</span>...</div><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: 提取关键文本段落 1: '本公司于报告期末存在一项尚未了结的重大诉讼案件。原告A公司就合同纠纷向本公司索赔人民币<span class="log-highlight">1,500万元</span>。根据外部律师意见，本公司败诉并需要支付赔偿的可能性<span class="log-highlight">较高（估计为70%）</span>，但具体金额尚不能完全可靠地计量，预计潜在损失范围在<span class="log-highlight">800万元至1,500万元</span>之间。管理层认为，鉴于案件的复杂性和不确定性，目前不宜确认预计负债，但已作为或有负债在附注中充分披露。'</div><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: AI语义分析模块处理中...</div><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: 识别关键词：'重大诉讼', '索赔', '败诉可能性较高', '潜在损失', '未确认预计负债', '或有负债披露'。</div><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: 初步分类：该事项符合《企业会计准则第13号——或有事项》中关于<span class="log-highlight">或有负债</span>的定义，且满足特定条件下应确认<span class="log-highlight">预计负债</span>的潜在可能（可能性较高）。</div><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: 正在交叉比对资产负债表科目...</div><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: 查询科目：'预计负债'... <span class="log-highlight">结果：期末余额为 ¥0.00。</span></div><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: 查询科目：'其他流动负债'、'其他非流动负债'明细... <span class="log-highlight">结果：未发现与此诉讼事项明确相关的款项。</span></div><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统分析：附注已披露重大或有负债事项，且指出败诉可能性较高，但资产负债表中'预计负债'科目未予确认。附注提及'具体金额尚不能完全可靠地计量'，但同时给出了'潜在损失范围'和'可能性较高'的判断。</div><div class="log-conclusion"><strong>系统结论:</strong> 存在附注定性披露与负债定量确认之间的<span class="log-highlight">潜在不一致性</span>。虽然附注声称金额计量困难，但“可能性较高”和“损失范围”的表述，需进一步评估是否已达到应确认预计负债的临界点。建议人工复核该事项会计处理的恰当性。</div>`;
+        }
+
+        function generateNetProfitRiskSummaryHtml() {
+            return `<div class="risk-summary-section"><h4>风险事件：净利润同比大幅下降 <span style="color:red;">70%</span></h4><p><strong>风险等级：</strong><span style="color:red; font-weight:bold;">高</span></p><h5>核心指标</h5><ul><li>本期净利润：<span class="key-data-highlight">¥355万</span></li><li>上期净利润：¥1,183万</li><li>同比变动：<span style="color:red; font-weight:bold;">-70%</span></li></ul><h5>主要驱动因素 (AI分析)</h5><ul><li><strong>存货减值准备:</strong> 本期计提 <span class="important-note">¥1,000万</span>，对利润产生重大负面冲击。</li><li><strong>成本压力:</strong> 营业收入 (¥1.50亿) 虽微增3.5%，但未能有效覆盖营业成本及各项营运费用的上涨。</li></ul><h5>潜在风险与影响</h5><ul><li><strong>盈利能力恶化:</strong> 可能预示公司核心盈利能力出现显著问题，持续性经营面临挑战。</li><li><strong>存货管理风险:</strong> 大额存货减值可能反映存货积压、产品过时、市场需求疲软或内部管理缺陷。</li><li><strong>现金流压力:</strong> 盈利下降通常伴随经营性现金流减弱的风险。</li><li><strong>投资者与债权人信心:</strong> 业绩剧烈下滑可能影响市场信心，对融资条件、股价等产生不利影响。</li><li><strong>内部控制有效性:</strong> 需关注导致此状况的内部控制环节是否存在不足。</li></ul><h5>建议行动与关注点</h5><ul><li><strong>专项审计/复核:</strong> 对存货减值的原因、计提充分性与合理性进行独立复核。</li><li><strong>成本控制评估:</strong> 全面审视各项成本费用支出，识别降本增效空间。</li><li><strong>市场与销售策略分析:</strong> 评估当前产品竞争力、市场定位及销售策略的有效性。</li><li><strong>管理层解释与应对计划:</strong> 要求管理层就利润大幅下滑提供详细解释，并制定具体的改进措施与业绩目标。</li></ul></div>`;
+        }
+
+        function generateProvisionPolicyReviewHtml() {
+            let ts = () => new Date().toLocaleTimeString();
+            return `<div class="policy-section"><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: 正在检索公司《会计政策手册》文档库...</div><div class="log-entry"><span class="log-timestamp">[${ts()}]</span> 系统: 定位章节：<span class="policy-keyword">会计政策 - 22. 预计负债</span></div><h5>22.1 预计负债的确认标准</h5><div class="policy-excerpt"><p>与或有事项相关的义务同时满足下列条件的，本公司将其确认为预计负债：</p><ol><li>(1) 该义务是本公司承担的<span class="policy-keyword">现时义务</span>；</li><li>(2) 履行该义务<span class="policy-keyword">很可能</span>导致经济利益流出本公司；</li><li>(3) 该义务的金额能够<span class="policy-keyword">可靠地计量</span>。</li></ol></div><div class="system-check"><p><strong>系统对比分析 (确认标准):</strong></p><ul><li>已识别的未决诉讼（原告A公司索赔1500万）：</li><li>附注披露律师意见认为败诉“<span class="policy-keyword">可能性较高</span>”（符合条件2）。</li><li>附注提及“潜在损失范围在<span class="policy-keyword">800万元至1,500万元</span>之间”。</li><li>管理层认为“具体金额尚不能<span class="policy-keyword">完全可靠地计量</span>”，因此未确认（对条件3的判断）。</li><li><strong>关注点:</strong> 在已知损失范围和较高败诉可能性的情况下，对“不能完全可靠计量”的判断是否过于谨慎，或缺乏足够支持。</li></ul></div><h5>22.2 预计负债的计量</h5><div class="policy-excerpt"><p>预计负债按照履行相关现时义务所需支出的<span class="policy-keyword">最佳估计数</span>进行初始计量。</p><p>在确定最佳估计数时，应当综合考虑与或有事项有关的风险、不确定性和货币时间价值等因素。所需支出存在一个<span class="policy-keyword">连续范围</span>（或区间），且该范围内各种结果发生的可能性相同的，则最佳估计数应当按照该范围内的<span class="policy-keyword">中间值</span>即上下限金额的平均数确定。所需支出不存在一个连续范围（或区间），或虽然存在一个连续范围但该范围内各种结果发生的可能性不相同的，如或有事项涉及单个项目的，则最佳估计数按照<span class="policy-keyword">最可能发生金额</span>确定。</p></div><div class="system-check"><p><strong>系统对比分析 (计量方法):</strong></p><ul><li>附注已提供损失的<span class="policy-keyword">连续范围</span>（800万-1500万）。</li><li>若此范围内各种结果可能性相同，按政策应取中间值 <span class="policy-keyword">1150万元</span> ( (800+1500)/2 ) 作为最佳估计数。</li><li>若可能性不同，需判断最可能发生金额。</li><li><strong>关注点:</strong> 公司政策明确了在存在金额范围时的计量方法。需要评估管理层是否有充分理由不采用此方法进行估计。</li></ul></div><h5>22.3 或有负债的披露</h5><div class="policy-excerpt"><p>对于不满足预计负债确认条件的现时义务，或过去事项形成的潜在义务，其履行成为现时义务不是很可能的，或金额不能可靠计量的，本公司将其作为或有负债，在财务报表附注中披露其形成原因、预计产生的财务影响（如果能够预计）、获得补偿的可能性以及与此相关的不确定性的性质、金额和时间。</p></div><div class="system-check"><p><strong>系统对比分析 (披露):</strong></p><ul><li>公司已在附注中披露了该未决诉讼，符合或有负债的披露要求。</li><li><strong>核心问题:</strong> 并非披露本身，而是该事项是否已从“仅需披露的或有负债”转变为“应确认的预计负债”。</li></ul></div><div class="policy-review-conclusion"><p><strong>政策审查初步结论：</strong></p><p>公司制定的预计负债会计政策在条款上与《企业会计准则第13号——或有事项》基本一致。当前问题的关键在于对“金额能够可靠地计量”这一确认条件的实际应用和判断，特别是在律师已提供“败诉可能性较高”及“潜在损失范围”的情况下。</p><p><strong>建议：</strong></p><ol><li>与管理层及法律顾问深入沟通，获取其对“金额不能完全可靠计量”判断的详细依据和客观证据。</li><li>根据公司政策中关于“最佳估计数”的计量方法（如区间中间值法），重新评估在该诉讼事项上确认预计负债的可行性与必要性。</li><li>若评估结果表明应确认预计负债，则需考虑对当期财务报表进行调整，并解释前期未确认的理由。</li></ol></div></div>`;
+        }
+
+        function generateTeamAssignmentHtml() {
+            const reportName = "财年2024年度财务报表"; // Example report name
+            const issueSummary = `在《${reportName}》的财务报表中，系统识别到附注中披露的“重大或有负债”（关于与A公司的未决诉讼，索赔1500万，潜在损失800-1500万，败诉可能性较高）与资产负债表中“预计负债”科目（当前余额为¥0）的处理可能存在不一致。`;
+            const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('zh-CN'); // Roughly 7 days from now
+
+            let html = `<div class="assignment-section">`;
+            html += `<div class="assignment-description"><strong>事项描述：</strong>${issueSummary}</div>`;
+
+            // Legal Team
+            html += `<h5>法务团队</h5><ul>`;
+            const legalTeam = [
+                { name: "李主管 (法务)", email: "li.fawu@example-company.com", request: "请提供关于此诉讼的最新法律意见，特别是关于潜在损失金额可计量性的评估，以及管理层判断的依据。" },
+                { name: "王顾问 (外部法律)", email: "wang.legalcounsel@example-firm.com", request: "请复核我方法务团队的意见，并就该事项的潜在法律风险和会计处理的合规性提供独立建议。" }
+            ];
+            legalTeam.forEach((member, index) => {
+                html += `<li>
+                                 <div>
+                                     <strong>${member.name}</strong><br>
+                                     <small>${member.email}</small>
+                                 </div>
+                                 <button class="send-email-btn" data-recipient="${member.email}" data-name="${member.name}" data-type="legal" data-request="${member.request}">发送邮件</button>
+                                </li>`;
+            });
+            html += `</ul>`;
+
+            // Audit Team
+            html += `<h5>审计团队</h5><ul>`;
+            const auditTeam = [
+                { name: "张经理 (内部审计)", email: "zhang.audit@example-company.com", request: "请根据最新的法律意见和公司会计政策，复核管理层对该或有事项的会计处理（未确认预计负债）是否恰当，并评估相关内部控制的有效性。" },
+                { name: "赵合伙人 (XYZ CPA)", email: "zhao.partner@xyz-cpa.com", request: "请关注此事项，并在后续审计工作中予以重点核查。我们将在获取更全面的法律意见后与您进一步沟通。" }
+            ];
+            auditTeam.forEach((member, index) => {
+                html += `<li>
+                                 <div>
+                                     <strong>${member.name}</strong><br>
+                                     <small>${member.email}</small>
+                                 </div>
+                                 <button class="send-email-btn" data-recipient="${member.email}" data-name="${member.name}" data-type="audit" data-request="${member.request}">发送邮件</button>
+                                </li>`;
+            });
+            html += `</ul>`;
+            html += `</div>`;
+            return html;
+        }
+
+        function addTeamAssignmentEventListeners() {
+            document.querySelectorAll('.send-email-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const recipient = this.dataset.recipient;
+                    const name = this.dataset.name;
+                    //const type = this.dataset.type; // 'legal' or 'audit'
+                    const specificRequest = this.dataset.request;
+                    const reportName = "财年2024年度财务报表"; // Consistent with above
+                    const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('zh-CN');
+
+                    const subject = `任务分配：复核《${reportName}》中或有负债事项`;
+                    let body = `你好 ${name}，\n\n`;
+                    body += `请协助复核财务报表智能解析系统在《${reportName}》中识别的一项合规关注点。\n\n`;
+                    body += `问题概述：系统识别到附注中披露的“重大或有负债”（关于与A公司的未决诉讼，索赔1500万，潜在损失800-1500万，律师认为败诉可能性较高）与资产负债表中“预计负债”科目（当前余额为¥0）的会计处理可能存在不一致。\n\n`;
+                    body += `具体要求：${specificRequest}\n\n`;
+                    body += `请在 ${dueDate} 前回馈您的初步意见。\n\n`;
+                    body += `感谢您的协助！\n\n`;
+                    body += `此致，\n财务报表智能解析系统 (自动分派)`;
+
+                    const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.location.href = mailtoLink;
+
+                    // Visually indicate mail has been "sent"
+                    this.textContent = '邮件已生成 ✓';
+                    this.style.backgroundColor = '#5cb85c'; // Green
+                    this.disabled = true;
+                });
+            });
+        }
+
+
+        // --- Main Demo Process (startDataInputProcess, startModelingProcess) ---
+        async function startDataInputProcess() {
+            if (demoInProgress || !uploadArea) return;
+            demoInProgress = true;
+            resetDataInputDemo(); // Ensure clean state
+            demoInProgress = true; // Set again after reset
+
+            uploadArea.style.display = 'none';
+            progressBarContainer.style.display = 'block';
+            processingVisualization.style.display = 'block';
+
+            await updateVisualStep(uploadVisual, null, '财务报表_年度.pdf 上传成功', 100); overallProgress.style.width = '5%';
+            await updateVisualStep(ocrVisual, '智能OCR识别：提取文本与数据...', '<div class="spinner"></div> 进行中', 700); await new Promise(r => setTimeout(r, 1200));
+            await updateVisualStep(ocrVisual, '智能OCR识别：提取文本与数据...', '完成'); overallProgress.style.width = '25%';
+            await updateVisualStep(structureVisual, '表格结构还原与附注内容解析...', '<div class="spinner"></div> 进行中', 400); await new Promise(r => setTimeout(r, 1500));
+            await updateVisualStep(structureVisual, '表格结构还原与附注内容解析...', '完成'); overallProgress.style.width = '50%';
+            await updateVisualStep(outputVisual, '初步结构化数据生成...', '<div class="spinner"></div> 进行中', 400); await new Promise(r => setTimeout(r, 1000));
+            await updateVisualStep(outputVisual, '初步结构化数据生成...', '完成'); overallProgress.style.width = '60%';
+
+            setTimeout(() => {
+                if(!ocrResultsArea || !ocrOutput) return;
+                ocrResultsArea.classList.add('show');
+                ocrOutput.innerHTML = `<table class="data-table"><thead><tr><th>科目名称</th><th>本期金额</th><th>上期金额</th><th>识别置信度</th></tr></thead><tbody><tr><td><a href="javascript:void(0);" class="account-link-simulation" data-account="货币资金">货币资金</a></td><td>12,345,678.90</td><td>10,234,567.80</td><td>99.2%</td></tr><tr><td><a href="javascript:void(0);" class="account-link-simulation" data-account="应收票据及应收账款">应收票据及应收账款</a></td><td>8,765,432.10</td><td>9,876,543.20</td><td>97.5%</td></tr><tr><td><a href="javascript:void(0);" class="account-link-simulation" data-account="存货">存货</a></td><td>25,430,120.50</td><td>20,115,780.30</td><td>98.1%</td></tr><tr><td><a href="javascript:void(0);" class="account-link-simulation" data-account="固定资产净额">固定资产净额</a></td><td>45,678,901.23</td><td>48,765,432.10</td><td>98.8%</td></tr><tr><td><a href="javascript:void(0);" class="account-link-simulation" data-account="营业收入">营业收入</a></td><td>150,321,678.00</td><td>145,123,890.50</td><td>99.5%</td></tr><tr><td><a href="javascript:void(0);" class="account-link-simulation" data-account="营业利润">营业利润</a></td><td>5,120,300.00</td><td>6,035,200.00</td><td>99.0%</td></tr><tr><td><a href="javascript:void(0);" class="account-link-simulation" data-account="净利润">净利润</a></td><td>3,550,800.00</td><td>11,836,000.00</td><td>99.1%</td></tr></tbody></table><p style="margin-top:20px;text-align:center;color:#555;"><strong>初步解析完成！</strong> 核心财务数据与附注关键信息已提取。可点击科目名称查看明细。</p>`;
+                document.querySelectorAll('.account-link-simulation').forEach(link => link.addEventListener('click', function() { openModal(`${this.getAttribute('data-account')} - 明细`, generateAccountDetailHtml(this.getAttribute('data-account'))); }));
+                startModelingProcess();
+            }, 500);
+        }
+
+        async function startModelingProcess() {
+            if(!modelingSection || !overallProgress) return;
+            modelingSection.style.display = 'block'; overallProgress.style.width = '65%';
+            const balanceSheetStatusEl = document.getElementById('balanceSheetStatus');
+            const incomeStatementStatusEl = document.getElementById('incomeStatementStatus');
+            const cashFlowStatusEl = document.getElementById('cashFlowStatus');
+            const dataQualityStatusEl = document.getElementById('dataQualityStatus');
+
+            await new Promise(r => setTimeout(r, 700)); if(balanceSheetStatusEl) balanceSheetStatusEl.innerHTML = '<span style="color:#28a745;font-weight:bold;">✓ 通过</span>'; overallProgress.style.width = '70%';
+            await new Promise(r => setTimeout(r, 700));
+            if(incomeStatementStatusEl) {
+                incomeStatementStatusEl.innerHTML = '<span style="color:orange;font-weight:bold;">⚠ 部分科目需关注</span>';
+                const indicator = incomeStatementStatusEl.previousElementSibling.querySelector('.status-indicator');
+                if (indicator) indicator.className = 'status-indicator warning';
+            }
+            overallProgress.style.width = '75%';
+            await new Promise(r => setTimeout(r, 700)); if(cashFlowStatusEl) cashFlowStatusEl.innerHTML = '<span style="color:#28a745;font-weight:bold;">✓ 通过</span>'; overallProgress.style.width = '80%';
+            await new Promise(r => setTimeout(r, 700)); if(dataQualityStatusEl) dataQualityStatusEl.innerHTML = '<span style="color:#28a745;font-weight:bold;">✓ 高质量</span>'; overallProgress.style.width = '85%';
+
+            setTimeout(() => {
+                if(!modelingResultsArea || !modelingOutput) return;
+                modelingResultsArea.classList.add('show');
+                modelingOutput.innerHTML = `
+                    <div class="automated-finding-card">
+                        <div class="finding-header"><span class="icon">⚠️</span><span class="title">高优先级警示：净利润显著下降</span><span class="priority-tag high">高</span></div>
+                        <div class="finding-content">
+                            <div class="finding-section"><h6>核心发现</h6><p>系统检测到本期净利润较上期<span class="key-data-highlight">同比下降70%</span>（本期 <span class="key-data-highlight">¥355万</span> vs. 上期 <span class="key-data-highlight">¥1,183万</span>），已触发“剧烈波动”预警阈值。</p></div>
+                            <div class="finding-section"><h6>AI智能归因分析</h6><p>大模型结合财务数据与附注分析，主要归因如下：</p><ul><li>营业收入（<span class="key-data-highlight">¥1.50亿</span>）同比微增3.5%，但不足以覆盖成本增幅。</li><li>资产减值损失大幅增加是关键因素：附注披露本期计提了<span class="important-note">¥1,000万</span>的存货跌价准备。</li><li>其他经营成本及费用亦有上升。</li></ul></div>
+                            <div class="finding-section"><h6>潜在影响与建议</h6><p>该剧烈波动可能预示公司盈利能力出现显著下滑，或存货管理存在较大风险。管理层应重点关注：</p><ul><li>存货跌价准备计提的充分性、合理性及背后深层原因。</li><li>成本控制有效性及未来盈利趋势。</li></ul></div>
+                        </div>
+                        <div class="finding-actions">
+                            <a href="javascript:void(0);" class="action-button-sim" id="viewIncomeStatementBtn">查阅利润表细目</a>
+                            <a href="javascript:void(0);" class="action-button-sim" id="analyzeInventoryImpairmentBtn">分析存货减值详情</a>
+                            <a href="javascript:void(0);" class="action-button-sim secondary" id="markForReviewNetProfitBtn">标记为待复核</a>
+                            <a href="javascript:void(0);" class="action-button-sim secondary" id="generateRiskSummaryNetProfitBtn">生成风险摘要</a>
+                        </div>
+                    </div>
+                    <div class="automated-finding-card">
+                        <div class="finding-header"><span class="icon">❗</span><span class="title">合规关注：附注与财务数据可能存在不一致</span><span class="priority-tag medium">中</span></div>
+                        <div class="finding-content">
+                            <div class="finding-section"><h6>核心发现</h6><p>系统在交叉验证中发现，报表附注中定性披露了<span class="important-note">“重大或有负债”</span>事项，但资产负债表相关科目（如“预计负债”）未能充分、准确地定量反映此信息。</p></div>
+                            <div class="finding-section"><h6>AI智能归因分析</h6><ul><li>附注文本识别：“公司存在一项未决诉讼，相关索赔金额重大，可能导致未来经济利益流出…”</li><li>数据比对：资产负债表中“预计负债”科目余额为<span class="key-data-highlight">¥0</span>，其他负债类科目亦未见明确对应或充分解释。</li></ul></div>
+                            <div class="finding-section"><h6>潜在风险与建议</h6><p>此种不一致可能构成财务报告错报或信息披露不完整、不准确的风险，影响财务报表的可靠性与合规性。建议：</p><ul><li>立即核查该或有事项的最新进展及其会计处理是否符合企业会计准则关于预计负债的确认与计量要求。</li><li>确保信息披露的及时、完整、准确，避免误导投资者及监管机构。</li></ul></div>
+                        </div>
+                        <div class="finding-actions">
+                            <a href="javascript:void(0);" class="action-button-sim" id="checkContingentLiabilityBtn">核对附注原文与分类</a>
+                            <a href="javascript:void(0);" class="action-button-sim" id="reviewProvisionPolicyBtn">审查预计负债会计政策</a>
+                            <a href="javascript:void(0);" class="action-button-sim secondary" id="assignToTeamsBtn">分配给法务/审计团队</a>
+                        </div>
+                    </div>`;
+
+                document.getElementById('viewIncomeStatementBtn').addEventListener('click', () => openModal('利润表详细科目', generateIncomeStatementDetailHtml()));
+                document.getElementById('analyzeInventoryImpairmentBtn').addEventListener('click', () => openModal('存货跌价准备计提详情', generateInventoryImpairmentDetailHtml()));
+                document.getElementById('checkContingentLiabilityBtn').addEventListener('click', () => openModal('核对附注原文与分类 - 系统处理日志 (模拟)', generateNotesCheckDetailHtml()));
+
+                const markForReviewBtn = document.getElementById('markForReviewNetProfitBtn');
+                if(markForReviewBtn) markForReviewBtn.addEventListener('click', function() { this.textContent = '已标记待复核 ✓'; this.classList.add('actioned'); });
+
+                const genRiskSummaryBtn = document.getElementById('generateRiskSummaryNetProfitBtn');
+                if(genRiskSummaryBtn) genRiskSummaryBtn.addEventListener('click', () => openModal('净利润下降 - 风险摘要 (模拟)', generateNetProfitRiskSummaryHtml()));
+
+                const reviewPolicyBtn = document.getElementById('reviewProvisionPolicyBtn');
+                if(reviewPolicyBtn) reviewPolicyBtn.addEventListener('click', () => openModal('审查预计负债会计政策 (模拟)', generateProvisionPolicyReviewHtml()));
+
+                const assignTeamsBtn = document.getElementById('assignToTeamsBtn');
+                if(assignTeamsBtn) assignTeamsBtn.addEventListener('click', () => {
+                    openModal('分配任务：复核或有负债事项', generateTeamAssignmentHtml(), addTeamAssignmentEventListeners);
+                });
+
+
+                overallProgress.style.width = '100%'; demoInProgress = false;
+            }, 1000);
+        }
+
+        // --- Budget Control Page Logic ---
+        const budgetProcessingStatusEl = document.getElementById('budgetProcessingStatus');
+        const budgetProcessingTextEl = document.getElementById('budgetProcessingText');
+        const budgetProgressFillEl = document.getElementById('budgetProgressFill');
+        const deptBudgetStatusEl = document.getElementById('deptBudgetStatus');
+        const actualsSyncStatusEl = document.getElementById('actualsSyncStatus');
+        const budgetDashboardEl = document.getElementById('budgetDashboard');
+        const budgetAnalysisOutputEl = document.getElementById('budgetAnalysisOutput');
+        const budgetDetailedAnalysisSectionEl = document.getElementById('budgetDetailedAnalysisSection');
+
+
+        function resetBudgetControlDemo() {
+            if(budgetProcessingStatusEl) budgetProcessingStatusEl.style.display = 'none';
+            if(budgetProgressFillEl) budgetProgressFillEl.style.width = '0%';
+            if(deptBudgetStatusEl) deptBudgetStatusEl.textContent = '等待导入';
+            if(actualsSyncStatusEl) actualsSyncStatusEl.textContent = '等待同步';
+            if(budgetDashboardEl) budgetDashboardEl.style.display = 'none';
+
+            const deptExecutionChartEl = document.getElementById('deptExecutionChart');
+            if(deptExecutionChartEl) deptExecutionChartEl.innerHTML = '';
+
+            const varianceAlertsPanelEl = document.getElementById('varianceAlertsPanel');
+            if(varianceAlertsPanelEl) varianceAlertsPanelEl.innerHTML = '';
+
+            const budgetStatsCardsEl = document.getElementById('budgetStatsCards');
+            if(budgetStatsCardsEl) budgetStatsCardsEl.innerHTML = '';
+
+            if(budgetDetailedAnalysisSectionEl) budgetDetailedAnalysisSectionEl.classList.remove('show');
+            if(budgetAnalysisOutputEl) budgetAnalysisOutputEl.innerHTML = '';
+            closeModal(); // Close any open modals related to budget
+        }
+
+        async function simulateBudgetProcess(actionType) {
+            if(!budgetProcessingStatusEl || !budgetDashboardEl || !budgetDetailedAnalysisSectionEl || !budgetAnalysisOutputEl || !budgetProgressFillEl || !budgetProcessingTextEl) return;
+
+            budgetProcessingStatusEl.style.display = 'block';
+            budgetDashboardEl.style.display = 'none';
+            budgetDetailedAnalysisSectionEl.classList.remove('show');
+            budgetAnalysisOutputEl.innerHTML = '';
+            budgetProgressFillEl.style.width = '0%';
+
+
+            let actionTextStart = actionType === 'api_sync' ? '系统对接同步' : 'Excel导入处理';
+
+            budgetProcessingTextEl.textContent = `${actionTextStart}：正在准备...`;
+            budgetProgressFillEl.style.width = '10%';
+            await new Promise(r => setTimeout(r, 300));
+
+            if (actionType === 'api_sync') {
+                budgetProcessingTextEl.textContent = `系统对接同步：正在连接预算管理系统...`;
+                await new Promise(r => setTimeout(r, 500));
+                budgetProgressFillEl.style.width = '25%';
+
+                budgetProcessingTextEl.textContent = `系统对接同步：正在拉取部门预算数据...`;
+                if(deptBudgetStatusEl) deptBudgetStatusEl.textContent = 'API拉取中...';
+                await new Promise(r => setTimeout(r, 1000));
+                budgetProgressFillEl.style.width = '50%';
+                if(deptBudgetStatusEl) deptBudgetStatusEl.innerHTML = '<span style="color: #28a745; font-weight: bold;">API预算数据已导入 ✓</span>';
+
+                budgetProcessingTextEl.textContent = `系统对接同步：正在同步最新实际发生数...`;
+                if(actualsSyncStatusEl) actualsSyncStatusEl.textContent = 'API同步中...';
+                await new Promise(r => setTimeout(r, 1000));
+                budgetProgressFillEl.style.width = '80%';
+                if(actualsSyncStatusEl) actualsSyncStatusEl.innerHTML = '<span style="color: #28a745; font-weight: bold;">API实际数已同步 ✓</span>';
+
+            } else { // excel_import
+                budgetProcessingTextEl.textContent = `Excel导入处理：正在解析预算Excel文件...`;
+                await new Promise(r => setTimeout(r, 700));
+                budgetProgressFillEl.style.width = '30%';
+
+                budgetProcessingTextEl.textContent = `Excel导入处理：正在校验并导入部门预算数据...`;
+                if(deptBudgetStatusEl) deptBudgetStatusEl.textContent = 'Excel解析中...';
+                await new Promise(r => setTimeout(r, 1200));
+                budgetProgressFillEl.style.width = '60%';
+                if(deptBudgetStatusEl) deptBudgetStatusEl.innerHTML = '<span style="color: #28a745; font-weight: bold;">Excel预算数据已导入 ✓</span>';
+
+                budgetProcessingTextEl.textContent = `Excel导入处理：模拟从会计系统同步实际发生数...`;
+                if(actualsSyncStatusEl) actualsSyncStatusEl.textContent = '模拟同步中...';
+                await new Promise(r => setTimeout(r, 800));
+                budgetProgressFillEl.style.width = '85%';
+                if(actualsSyncStatusEl) actualsSyncStatusEl.innerHTML = '<span style="color: #28a745; font-weight: bold;">实际数已同步 (模拟) ✓</span>';
+            }
+
+            budgetProcessingTextEl.textContent = `${actionTextStart}：数据处理完成，生成看板...`;
+            budgetProgressFillEl.style.width = '100%';
+            await new Promise(r => setTimeout(r, 500));
+
+            budgetProcessingStatusEl.style.display = 'none';
+            displayBudgetDashboard();
+            budgetDashboardEl.style.display = 'block';
+        }
+
+        const syncBudgetSystemBtn = document.getElementById('syncBudgetSystemBtn');
+        if(syncBudgetSystemBtn) syncBudgetSystemBtn.addEventListener('click', () => {
+            simulateBudgetProcess('api_sync');
+        });
+
+        const importBudgetExcelBtn = document.getElementById('importBudgetExcelBtn');
+        if(importBudgetExcelBtn) importBudgetExcelBtn.addEventListener('click', () => {
+             simulateBudgetProcess('excel_import');
+        });
+        const budgetExcelUploadEl = document.getElementById('budgetExcelUpload');
+        if(budgetExcelUploadEl) budgetExcelUploadEl.addEventListener('click', () => {
+            alert("模拟文件选择对话框：请选择您的预算Excel文件。在此演示中，请直接点击“导入预算表”按钮。");
+        });
+
+
+        function displayBudgetDashboard() {
+            // 1. Populate Execution Rate Chart
+            const chartContainer = document.getElementById('deptExecutionChart');
+            if(!chartContainer) return;
+            chartContainer.innerHTML = ''; // Clear previous
+            const deptData = [
+                { name: '市场部', actual: 650000, budget: 500000, rate: 130 }, // Over budget
+                { name: '研发部', actual: 680000, budget: 800000, rate: 85 },  // Under budget
+                { name: '运营部', actual: 300000, budget: 300000, rate: 100 },
+                { name: '行政部', actual: 224000, budget: 200000, rate: 112 }, // Over budget
+                { name: '销售部', actual: 900000, budget: 1000000, rate: 90 }
+            ];
+            deptData.forEach(dept => {
+                const barGroup = document.createElement('div');
+                barGroup.className = 'bar-group';
+                const label = document.createElement('div');
+                label.className = 'bar-label';
+                label.textContent = dept.name;
+                const barWrapper = document.createElement('div');
+                barWrapper.className = 'bar-wrapper';
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.width = `${Math.min(dept.rate, 150)}%`; // Cap width for display
+                if (dept.rate > 100) bar.classList.add('over-budget');
+
+                const percentageLabel = document.createElement('span');
+                percentageLabel.className = 'percentage-label';
+                percentageLabel.textContent = `${dept.rate}%`;
+
+                bar.appendChild(percentageLabel);
+                barWrapper.appendChild(bar);
+                barGroup.appendChild(label);
+                barGroup.appendChild(barWrapper);
+                chartContainer.appendChild(barGroup);
+            });
+
+            // 2. Populate Variance Alerts
+            const alertsPanel = document.getElementById('varianceAlertsPanel');
+            if(!alertsPanel) return;
+            alertsPanel.innerHTML = '';
+            const alertsData = [
+                { id: 'market_promo', title: '市场推广费：超出预算30%', details: '预算: 500,000 | 实际: 650,000 | 偏差: +150,000', type: 'high-alert', dataTarget: 'MarketPromoVariance' },
+                { id: 'rnd_expenditure', title: '研发支出：低于预算15%', details: '预算: 800,000 | 实际: 680,000 | 偏差: -120,000', type: 'normal', dataTarget: 'RnDVariance'},
+                { id: 'admin_office', title: '行政办公费：超出预算12%', details: '预算: 200,000 | 实际: 224,000 | 偏差: +24,000', type: 'normal', dataTarget: 'AdminVariance' }
+            ];
+            alertsData.forEach(alertData => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert-item ${alertData.type}`;
+                alertDiv.innerHTML = `<h6>${alertData.title}</h6><p>${alertData.details}</p>`;
+                alertDiv.addEventListener('click', () => showBudgetVarianceDetail(alertData.dataTarget));
+                alertsPanel.appendChild(alertDiv);
+            });
+
+            // 3. Populate Budget Statistics
+            const statsContainer = document.getElementById('budgetStatsCards');
+            if(!statsContainer) return;
+            statsContainer.innerHTML = '';
+            const statsData = [
+                { value: '95%', label: '本季度预算执行进度', class: '', action: 'showQuarterlyProgressDetail' }, // MODIFIED: Added action
+                { value: '3', label: '超预算项目数 (需关注)', class: 'red', action: 'showOverBudgetDetails' },
+                { value: '2', label: '未达预算项目数 (需跟踪)', class: 'orange', action: 'showUnderBudgetDetails' }
+            ];
+            statsData.forEach(stat => {
+                const card = document.createElement('div');
+                card.className = 'budget-stat-card';
+                card.innerHTML = `<div class="value ${stat.class}">${stat.value}</div><div class="label">${stat.label}</div>`;
+                if (stat.action) {
+                    card.classList.add('clickable');
+                    card.addEventListener('click', () => {
+                        if (stat.action === 'showOverBudgetDetails') {
+                            showOverBudgetItemsDetail();
+                        } else if (stat.action === 'showUnderBudgetDetails') {
+                            showUnderBudgetItemsDetail();
+                        } else if (stat.action === 'showQuarterlyProgressDetail') { // NEW: Handle click for quarterly progress
+                            showQuarterlyBudgetProgressDetail();
+                        }
+                    });
+                }
+                statsContainer.appendChild(card);
+            });
+        }
+
+        // NEW FUNCTION: Show quarterly budget progress detail modal
+        function showQuarterlyBudgetProgressDetail() {
+            const title = "本季度预算执行进度详情";
+            const contentHtml = generateQuarterlyBudgetProgressDetailHtml();
+            openModal(title, contentHtml);
+        }
+
+        // NEW FUNCTION: Generate HTML for quarterly budget progress detail
+        function generateQuarterlyBudgetProgressDetailHtml() {
+            const overallProgressPercent = 95; // From the card
+            const quarter = "Q2 2025"; // Assumed, or can be dynamic
+            const asOfDate = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }); // Dynamic date
+
+            const totalBudget = 5000000;
+            const actualSpending = totalBudget * (overallProgressPercent / 100);
+            const remainingBudget = totalBudget - actualSpending;
+
+            const breakdownData = [
+                { name: '运营部门', budget: 2000000, actual: 1950000, note: "核心项目按计划支出，接近预算上限。" },
+                { name: '市场部门', budget: 1000000, actual: 980000, note: "大型推广活动已完成，费用控制在预期内。" },
+                { name: '研发部门', budget: 1500000, actual: 1400000, note: "新产品Alpha线投入符合预期，部分模块成本优化。" },
+                { name: '行政部门', budget: 500000, actual: 420000, note: "日常运营支出平稳，部分采购计划延后。" }
+            ];
+
+            let html = `<h4>${quarter}预算执行进度 (截至 ${asOfDate})</h4>`;
+            html += `<p style="margin-top:10px;"><strong>总体执行率: <span style="color: #667eea; font-size: 1.2em;">${overallProgressPercent}%</span></strong></p>`;
+            html += `<table class="modal-table" style="margin-top:15px;">
+                            <tbody>
+                                <tr><td style="font-weight:500;">总预算额</td><td>${totalBudget.toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' })}</td></tr>
+                                <tr><td style="font-weight:500;">累计已执行</td><td>${actualSpending.toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' })}</td></tr>
+                                <tr><td style="font-weight:500;">剩余预算</td><td>${remainingBudget.toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' })}</td></tr>
+                            </tbody>
+                           </table>`;
+
+            html += `<h5 style="margin-top:20px; margin-bottom:10px; color: #764ba2;">各主要类别/部门预算执行明细</h5>`;
+            html += `<table class="modal-table">
+                            <thead>
+                                <tr>
+                                    <th>类别/部门</th>
+                                    <th>预算额</th>
+                                    <th>实际支出</th>
+                                    <th>执行率</th>
+                                    <th>简要说明</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+            breakdownData.forEach(item => {
+                const executionRate = item.budget > 0 ? ((item.actual / item.budget) * 100).toFixed(1) : "0.0";
+                html += `<tr>
+                            <td>${item.name}</td>
+                            <td>${item.budget.toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' })}</td>
+                            <td>${item.actual.toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' })}</td>
+                            <td>${executionRate}%</td>
+                            <td><small>${item.note || '-'}</small></td>
+                           </tr>`;
+            });
+             // Total row for breakdown
+            const totalBreakdownBudget = breakdownData.reduce((sum, item) => sum + item.budget, 0);
+            const totalBreakdownActual = breakdownData.reduce((sum, item) => sum + item.actual, 0);
+            const overallBreakdownRate = totalBreakdownBudget > 0 ? ((totalBreakdownActual / totalBreakdownBudget) * 100).toFixed(1) : "0.0";
+
+            html += `<tr class="total-row">
+                            <td><strong>合计</strong></td>
+                            <td><strong>${totalBreakdownBudget.toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' })}</strong></td>
+                            <td><strong>${totalBreakdownActual.toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' })}</strong></td>
+                            <td><strong>${overallBreakdownRate}%</strong></td>
+                            <td>-</td>
+                           </tr>`;
+            html += `</tbody></table>`;
+
+            html += `<div class="policy-review-conclusion" style="margin-top:20px;">
+                            <p><strong>智能分析与建议:</strong></p>
+                            <ul>
+                                <li>本季度预算整体执行情况良好，与设定的 ${overallProgressPercent}% 进度基本吻合，表明公司整体运营支出在控制之中。</li>
+                                <li>市场与运营部门预算使用已达较高水平 (分别为 ${((breakdownData[1].actual/breakdownData[1].budget)*100).toFixed(1)}% 和 ${((breakdownData[0].actual/breakdownData[0].budget)*100).toFixed(1)}%)，后续需严格控制新增非计划支出。</li>
+                                <li>研发部门执行率为 ${((breakdownData[2].actual/breakdownData[2].budget)*100).toFixed(1)}%，符合稳步推进的态势，若有重大里程碑节点，可适度加快投入。</li>
+                                <li>行政部门预算尚有 ${((1 - (breakdownData[3].actual/breakdownData[3].budget))*100).toFixed(1)}% 的余额，财务部门可与行政确认下阶段大额支出计划，以优化资金利用效率。</li>
+                            </ul>
+                            <p><strong>后续行动:</strong> 建议财务经理与各部门负责人就剩余预算使用计划进行沟通，确保季度末预算目标的顺利达成，并为下季度预算编制提供数据支持。</p>
+                           </div>`;
+            return html;
+        }
+
+
+        function showBudgetVarianceDetail(varianceType) {
+            if(!budgetDetailedAnalysisSectionEl || !budgetAnalysisOutputEl) return;
+            let title = "预算偏差详情";
+            let contentHtml = "";
+            budgetDetailedAnalysisSectionEl.classList.remove('show'); // Hide first, then show
+            budgetAnalysisOutputEl.innerHTML = ''; // Clear previous content
+
+
+            if (varianceType === 'MarketPromoVariance') {
+                title = "市场推广费超预算分析";
+                contentHtml = `
+                    <div class="automated-finding-card">
+                        <div class="finding-header"><span class="icon">💸</span><span class="title">${title}</span><span class="priority-tag high">偏差+30%</span></div>
+                        <div class="finding-content">
+                            <div class="finding-section">
+                                <h6>预算差异详情</h6>
+                                <p>• 预算金额: <span class="key-data-highlight">500,000元</span></p>
+                                <p>• 实际发生: <span class="key-data-highlight">650,000元</span></p>
+                                <p>• 偏差金额: <span class="important-note over">+150,000元</span></p>
+                                <p>• 偏差率: <span class="important-note over">+30%</span></p>
+                            </div>
+                            <div class="finding-section">
+                                <h6>语义化偏差提示:</h6>
+                                <p><i>“市场推广费本月超预算30%，是否由于本月举行了大型市场活动？”</i></p>
+                            </div>
+                            <div class="finding-section">
+                                <h6>多维度数据关联分析:</h6>
+                                <ul>
+                                    <li><strong>【企业活动记录】</strong>发现5月开展了三场线下推广活动，合计费用预估约60万元。</li>
+                                    <li><strong>【内部科目数据】</strong>线上投放支出环比增长45%。</li>
+                                    <li><strong>【外部因素数据】</strong>行业进入季节性促销期，竞争对手推广活动增加。</li>
+                                </ul>
+                            </div>
+                             <div class="finding-section">
+                                <h6>数据驱动的初步解释模型:</h6>
+                                <p>结合本月企业活动记录，系统发现市场部于5月开展了三场线下推广活动，合计费用预估在60万元左右，可能是导致费用超预算的主要原因。同时观察到线上投放支出环比增长45%，进一步加剧费用超支。结合行业季节性促销期因素，表明市场部在此阶段加大了推广力度。</p>
+                            </div>
+                        </div>
+                        <div class="finding-actions">
+                            <a href="javascript:void(0);" class="action-button-sim" onclick="alert('模拟操作：已要求市场部提交偏差说明报告。')">要求提交偏差说明</a>
+                            <a href="javascript:void(0);" class="action-button-sim secondary" onclick="showBudgetAdjustmentDecisionModal()">审议预算调整</a>
+                        </div>
+                    </div>
+                    ${generateBudgetOverallSummaryPartialHtml()}
+                `;
+            } else if (varianceType === 'RnDVariance') {
+                 title = "研发支出低于预算分析";
+                 contentHtml = `<div class="automated-finding-card"><div class="finding-header"><span class="icon">📉</span><span class="title">${title}</span><span class="priority-tag medium">偏差-15%</span></div><div class="finding-content"><div class="finding-section"><h6>预算差异详情</h6><p>• 预算金额: <span class="key-data-highlight">800,000元</span></p><p>• 实际发生: <span class="key-data-highlight">680,000元</span></p><p>• 偏差金额: <span class="important-note under">-120,000元</span></p><p>• 偏差率: <span class="important-note under">-15%</span></p></div> <div class="finding-section"><h6>AI分析</h6><p>可能原因包括项目延期、招聘未达预期或成本控制得当。建议核实项目进度及资源分配计划。</p></div></div><div class="finding-actions"><a href="javascript:void(0);" class="action-button-sim">查看项目明细</a></div></div>`;
+            } else if (varianceType === 'AdminVariance') {
+                 title = "行政办公费超预算分析";
+                 contentHtml = `<div class="automated-finding-card"><div class="finding-header"><span class="icon">📎</span><span class="title">${title}</span><span class="priority-tag medium">偏差+12%</span></div><div class="finding-content"><div class="finding-section"><h6>预算差异详情</h6><p>• 预算金额: <span class="key-data-highlight">200,000元</span></p><p>• 实际发生: <span class="key-data-highlight">224,000元</span></p><p>• 偏差金额: <span class="important-note over">+24,000元</span></p><p>• 偏差率: <span class="important-note over">+12%</span></p></div> <div class="finding-section"><h6>AI分析</h6><p>可能由于采购价格上涨或临时性支出增加。建议审查具体支出明细。</p></div></div><div class="finding-actions"><a href="javascript:void(0);" class="action-button-sim">审查支出明细</a></div></div>`;
+            }
+            budgetAnalysisOutputEl.innerHTML = contentHtml;
+            budgetDetailedAnalysisSectionEl.classList.add('show');
+            budgetDetailedAnalysisSectionEl.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showOverBudgetItemsDetail() {
+            if(!budgetDetailedAnalysisSectionEl || !budgetAnalysisOutputEl) return;
+            budgetDetailedAnalysisSectionEl.classList.remove('show');
+            budgetAnalysisOutputEl.innerHTML = '';
+            const contentHtml = `
+                <div class="automated-finding-card">
+                    <div class="finding-header"><span class="icon">📈</span><span class="title">超预算项目列表与原因分析</span><span class="priority-tag high">3个项目</span></div>
+                    <div class="finding-content">
+                        <div class="finding-section">
+                            <h6>1. 市场推广费 - 春季新品发布会</h6>
+                            <p>• 部门: 市场部</p>
+                            <p>• 预算: 200,000元 | 实际: 280,000元 | <strong class="important-note over">超支: +80,000元 (+40%)</strong></p>
+                            <p><strong>AI原因分析:</strong> 活动规模超出预期，增加了KOL合作环节（费用约5万元）；媒体宣传周期延长，额外投放数字广告（费用约3万元）。</p>
+                            <p><strong>建议:</strong> 对大型活动预算进行更细致拆分，建立应急预备金。评估KOL合作ROI。</p>
+                        </div>
+                        <div class="finding-section">
+                            <h6>2. 差旅费 - 海外业务拓展</h6>
+                            <p>• 部门: 销售部</p>
+                            <p>• 预算: 150,000元 | 实际: 195,000元 | <strong class="important-note over">超支: +45,000元 (+30%)</strong></p>
+                            <p><strong>AI原因分析:</strong> 国际机票价格上涨超出预期（约2万元）；增加了额外的客户招待与礼品费用（约2.5万元）。</p>
+                            <p><strong>建议:</strong> 尽可能提前预订机票，明确差旅招待标准与上限。</p>
+                        </div>
+                        <div class="finding-section">
+                            <h6>3. 行政办公费 - IT设备采购</h6>
+                             <p>• 部门: 行政部</p>
+                            <p>• 预算: 50,000元 | 实际: 75,000元 | <strong class="important-note over">超支: +25,000元 (+50%)</strong></p>
+                            <p><strong>AI原因分析:</strong> 采购了更高配置的服务器以满足未来需求（约1.5万元超支）；增加了紧急采购的办公软件授权（约1万元）。</p>
+                            <p><strong>建议:</strong> IT设备升级应有前瞻性规划并纳入年度预算，避免临时高价采购。软件授权集中采购。</p>
+                        </div>
+                         <div class="finding-section">
+                            <h6>总体管理建议</h6>
+                            <p>• 加强预算编制的颗粒度和前瞻性，对不可控因素（如价格波动）设置合理浮动范围。</p>
+                            <p>• 严格执行预算审批流程，超预算支出需有充分理由并通过追加预算申请。</p>
+                            <p>• 定期复盘预算执行情况，及时调整策略，避免偏差持续扩大。</p>
+                        </div>
+                    </div>
+                    <div class="finding-actions">
+                        <a href="javascript:void(0);" class="action-button-sim" onclick="alert('已通知相关部门负责人提交详细整改报告。')">要求部门提交整改报告</a>
+                        <a href="javascript:void(0);" class="action-button-sim secondary" onclick="openModal('汇总报告下载', '<p>超预算项目汇总分析报告 (PDF) 正在生成...</p><p>请稍后在此处下载。</p>')">下载汇总报告</a>
+                    </div>
+                </div>`;
+            budgetAnalysisOutputEl.innerHTML = contentHtml;
+            budgetDetailedAnalysisSectionEl.classList.add('show');
+            budgetDetailedAnalysisSectionEl.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showUnderBudgetItemsDetail() {
+            if(!budgetDetailedAnalysisSectionEl || !budgetAnalysisOutputEl) return;
+            budgetDetailedAnalysisSectionEl.classList.remove('show');
+            budgetAnalysisOutputEl.innerHTML = '';
+            const contentHtml = `
+                <div class="automated-finding-card">
+                    <div class="finding-header"><span class="icon">📉</span><span class="title">未达预算项目列表与原因分析</span><span class="priority-tag medium">2个项目</span></div>
+                    <div class="finding-content">
+                        <div class="finding-section">
+                            <h6>1. 研发费用 - 新产品Alpha线</h6>
+                            <p>• 部门: 研发部</p>
+                            <p>• 预算: 800,000元 | 实际: 680,000元 | <strong class="important-note under">节余/未达: -120,000元 (-15%)</strong></p>
+                            <p><strong>AI原因分析:</strong> 项目部分阶段性目标提前完成，部分模块采用现有成熟技术方案替代，降低了开发成本；部分预聘高级工程师延迟到岗，相应人力成本未足额发生。</p>
+                            <p><strong>建议:</strong> 评估项目进度是否仍按计划推进，确认是否存在资源投入不足的风险。若为效率提升所致，可考虑将节余资金调配至其他重点项目或进行激励。</p>
+                        </div>
+                        <div class="finding-section">
+                            <h6>2. 培训费用 - 员工技能提升</h6>
+                            <p>• 部门: 人力资源部</p>
+                            <p>• 预算: 100,000元 | 实际: 70,000元 | <strong class="important-note under">节余/未达: -30,000元 (-30%)</strong></p>
+                            <p><strong>AI原因分析:</strong> 原计划的外部讲师培训课程因故取消，改为内部经验分享会，大幅降低成本；部分员工因项目繁忙未能参加已安排的培训。</p>
+                            <p><strong>建议:</strong> 跟踪员工培训完成率，确保核心技能培训得到落实。评估取消外部培训对培训质量的长期影响。</p>
+                        </div>
+                        <div class="finding-section">
+                            <h6>总体管理建议</h6>
+                            <p>• 对于未达预算项目，需区分是效率提升、成本优化，还是计划执行不到位、资源投入不足。</p>
+                            <p>• 若因计划推迟或取消导致预算节余，应评估对业务目标的潜在影响。</p>
+                            <p>• 鼓励成本节约，但需确保不影响核心业务的正常开展和长期发展。</p>
+                        </div>
+                    </div>
+                     <div class="finding-actions">
+                        <a href="javascript:void(0);" class="action-button-sim" onclick="alert('已要求相关部门负责人确认项目进度及资源需求。')">要求部门确认进度</a>
+                        <a href="javascript:void(0);" class="action-button-sim secondary" onclick="openModal('汇总报告下载', '<p>未达预算项目情况报告 (PDF) 正在生成...</p><p>请稍后在此处下载。</p>')">下载汇总报告</a>
+                    </div>
+                </div>`;
+            budgetAnalysisOutputEl.innerHTML = contentHtml;
+            budgetDetailedAnalysisSectionEl.classList.add('show');
+            budgetDetailedAnalysisSectionEl.scrollIntoView({ behavior: 'smooth' });
+        }
+
+
+        function generateBudgetOverallSummaryPartialHtml() {
+            // Based on 4.jpg
+            return `
+            <div class="automated-finding-card" style="margin-top:20px;">
+                <div class="finding-header"><span class="icon">📊</span><span class="title">预算偏差分析总结与决策</span></div>
+                <div class="finding-content">
+                    <div class="finding-section">
+                        <h6>预算偏差分析总结</h6>
+                        <p>系统已完成对各部门预算执行情况的全面分析，发现3个超出预算阈值的项目和2个未达预算目标的项目。重点关注：市场推广费超出预算30%，通过多维度数据分析，判断原因为5月临时安排的三场线下推广活动及线上投放增加，结合行业季节性因素。建议市场部详细说明投入产出比，并审议调整后续预算安排。</p>
+                    </div>
+                    <div class="finding-section">
+                         <h6>预算调整决策</h6>
+                         <p>为市场部追加预算 <span class="key-data-highlight">150,000元</span>，以支持已开展活动。</p>
+                         <div class="finding-actions" style="border-top:none; padding-top:10px;">
+                            <a href="javascript:void(0);" class="action-button-sim" onclick="alert('临时预算已审批并调整。')">审批并调整预算</a>
+                            <a href="javascript:void(0);" class="action-button-sim secondary" onclick="alert('已发送申请单给市场部，要求补充偏差说明。')">要求部门提交偏差说明</a>
+                         </div>
+                         <h6 style="margin-top:15px;">调整审批流程</h6>
+                         <p>修改市场费用审批流程，超过 <span class="key-data-highlight">±10%</span> 的预算调整需上报至财务总监。</p>
+                         <div class="finding-actions" style="border-top:none; padding-top:10px;">
+                              <a href="javascript:void(0);" class="action-button-sim" onclick="alert('审批流程规则已更新。')">更新流程规则</a>
+                         </div>
+                    </div>
+                     <div class="finding-section">
+                        <h6>预算趋势预测</h6>
+                        <div class="trend-chart-placeholder"></div>
+                        <p style="text-align:center; font-size:0.9em; margin-top:5px;">预测：根据当前趋势，未来两个月市场费用将逐步回归预算水平。</p>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+        function showBudgetAdjustmentDecisionModal() { // Renamed to avoid conflict
+            const decisionContent = `
+                <h4>预算调整决策 (市场推广费)</h4>
+                <p>当前偏差：+150,000元 (+30%)</p>
+                <p>建议行动：</p>
+                <ul>
+                    <li><strong>批准临时预算调整：</strong>同意追加150,000元以覆盖已发生费用。</li>
+                    <li><strong>要求部门说明：</strong>市场部需提交详细的活动效果及超支原因报告。</li>
+                    <li><strong>调整审批流程：</strong>考虑将市场推广费的重大调整审批权限上移。</li>
+                </ul>
+                <div class="finding-actions">
+                     <a href="javascript:void(0);" class="action-button-sim" onclick="alert('临时预算调整已提交审批。'); closeModal();">提交预算调整审批</a>
+                     <a href="javascript:void(0);" class="action-button-sim secondary" onclick="alert('已通知市场部补充说明。'); closeModal();">通知市场部补充说明</a>
+                </div>`;
+            openModal("预算调整决策", decisionContent);
+        }
+
+        // --- International Version Page Logic ---
+        const entitySelect = document.getElementById('entitySelect');
+        const dispEntityName = document.getElementById('dispEntityName');
+        const dispAccountingStandard = document.getElementById('dispAccountingStandard');
+        const dispReportingCurrency = document.getElementById('dispReportingCurrency');
+        const entitySpecificRulesText = document.getElementById('entitySpecificRulesText');
+        const selectedStandardLib = document.getElementById('selectedStandardLib');
+        const standardSpecificPointsList = document.getElementById('standardSpecificPointsList');
+        const sourceCurrencyDisplay = document.getElementById('sourceCurrencyDisplay');
+        const exchangeRateInput = document.getElementById('exchangeRateInput');
+        const inputRateFromCurrency = document.getElementById('inputRateFromCurrency');
+        const inputRateToCurrency = document.getElementById('inputRateToCurrency');
+        const simulateConversionBtn = document.getElementById('simulateConversionBtn');
+        const conversionResultDisplay = document.getElementById('conversionResultDisplay');
+        const currencyConversionSection = document.getElementById('currencyConversionSection');
+
+
+        const mockEntitiesData = {
+            entityA: {
+                name: "子公司A (中国, CAS, CNY)",
+                standard: "中国会计准则 (CAS)",
+                standardShort: "CAS",
+                currency: "人民币 (CNY)",
+                currencyShort: "CNY",
+                groupCurrency: "CNY",
+                rulesText: "子公司A: 启用中国特色增值税相关审核规则，关注研发费用加计扣除合规性，检查三公经费标准。",
+                standardLib: "中国会计准则 (CAS) 规则集",
+                standardPoints: [
+                    "固定资产折旧年限与残值率符合CAS规定。",
+                    "收入确认满足CAS条件，特别是建造合同、分期收款销售等特殊业务的收入确认方法。",
+                    "政府补助的会计处理符合CAS要求。",
+                    "资产减值准备计提的充分性与准确性。"
+                ],
+                coaMapping: [
+                    { localCode: "1001", localName: "库存现金", groupCode: "G-1001", groupName: "Cash on Hand" },
+                    { localCode: "1002", localName: "银行存款", groupCode: "G-1002", groupName: "Cash in Bank" },
+                    { localCode: "1122", localName: "应收账款", groupCode: "G-1100", groupName: "Accounts Receivable" },
+                    { localCode: "1403", localName: "原材料", groupCode: "G-1301", groupName: "Raw Materials Inventory" },
+                    { localCode: "6001", localName: "主营业务收入", groupCode: "G-4001", groupName: "Operating Revenue" }
+                ],
+                sampleAccounts: [ {name: "营业收入", amount: 150000000}, {name: "管理费用", amount: 7000000}]
+            },
+            entityB: {
+                name: "Subsidiary B (USA, IFRS, USD)",
+                standard: "国际财务报告准则 (IFRS)",
+                standardShort: "IFRS",
+                currency: "美元 (USD)",
+                currencyShort: "USD",
+                groupCurrency: "CNY", // Assuming group consolidates in CNY
+                rulesText: "Subsidiary B: Apply IFRS 15 for revenue from contracts with customers, especially for software licenses. IFRS 16 for lease accounting.",
+                standardLib: "国际财务报告准则 (IFRS) 规则集",
+                standardPoints: [
+                    "Revenue recognition in accordance with IFRS 15 (5-step model).",
+                    "Lease accounting for right-of-use assets and lease liabilities under IFRS 16.",
+                    "Financial instrument classification and measurement (IFRS 9).",
+                    "Impairment of assets under IAS 36."
+                ],
+                coaMapping: [
+                    { localCode: "CASH-EQ", localName: "Cash and Equivalents", groupCode: "G-1000", groupName: "Cash & Bank Balances" },
+                    { localCode: "AR-TRADE", localName: "Trade Receivables", groupCode: "G-1100", groupName: "Accounts Receivable" },
+                    { localCode: "INV-RAW", localName: "Inventory - Raw Materials", groupCode: "G-1301", groupName: "Raw Materials Inventory" },
+                    { localCode: "SALES-REV", localName: "Sales Revenue", groupCode: "G-4001", groupName: "Operating Revenue" },
+                    { localCode: "OPEX-RENT", localName: "Operating Expenses - Rent", groupCode: "G-5105", groupName: "Rent Expense" }
+                ],
+                sampleAccounts: [ {name: "Sales Revenue", amount: 20000000}, {name: "Operating Expenses", amount: 1200000}],
+                defaultRate: 7.10 // USD to CNY
+            },
+            entityC: {
+                name: "Branch C (Europe, IFRS, EUR)",
+                standard: "国际财务报告准则 (IFRS)",
+                standardShort: "IFRS",
+                currency: "欧元 (EUR)",
+                currencyShort: "EUR",
+                groupCurrency: "CNY",
+                rulesText: "Branch C: Focus on IFRS 9 for financial instruments, particularly hedging. VAT reconciliation for intra-community supplies.",
+                standardLib: "国际财务报告准则 (IFRS) 规则集",
+                standardPoints: [
+                    "Hedge accounting effectiveness testing (IFRS 9).",
+                    "Deferred tax assets/liabilities calculation under IAS 12.",
+                    "Provisions, contingent liabilities and contingent assets (IAS 37).",
+                    "Compliance with local tax regulations alongside IFRS."
+                ],
+                coaMapping: [
+                    { localCode: "BANK-EUR", localName: "Bank Account EUR", groupCode: "G-1002", groupName: "Cash in Bank" },
+                    { localCode: "REC-CLIENTS", localName: "Receivables Clients EU", groupCode: "G-1100", groupName: "Accounts Receivable" },
+                    { localCode: "STOCK-FG", localName: "Stock Finished Goods", groupCode: "G-1303", groupName: "Finished Goods Inventory" },
+                    { localCode: "TURN-EU", localName: "Turnover EU Market", groupCode: "G-4001", groupName: "Operating Revenue" }
+                ],
+                sampleAccounts: [ {name: "Turnover", amount: 15000000}, {name: "Personnel Costs", amount: 3000000}],
+                defaultRate: 7.80 // EUR to CNY
+            }
+        };
+
+        function resetInternationalVersionDemo() {
+            if(entitySelect) entitySelect.value = 'entityA'; // Default to entity A
+            updateInternationalPageContent('entityA');
+            if(conversionResultDisplay) conversionResultDisplay.innerHTML = '';
+            closeModal();
+        }
+
+
+        function updateInternationalPageContent(entityKey) {
+            const entityData = mockEntitiesData[entityKey];
+            if (!entityData || !dispEntityName || !dispAccountingStandard || !dispReportingCurrency || !entitySpecificRulesText || !selectedStandardLib || !standardSpecificPointsList || !sourceCurrencyDisplay || !exchangeRateInput || !simulateConversionBtn || !inputRateFromCurrency || !inputRateToCurrency || !currencyConversionSection) {
+                console.error("One or more International Page elements are missing.");
+                return;
+            }
+
+            dispEntityName.textContent = entityData.name;
+            dispAccountingStandard.textContent = entityData.standard;
+            dispReportingCurrency.textContent = entityData.currency;
+            entitySpecificRulesText.textContent = entityData.rulesText;
+            selectedStandardLib.textContent = entityData.standardLib;
+
+            standardSpecificPointsList.innerHTML = '';
+            entityData.standardPoints.forEach(point => {
+                const li = document.createElement('li');
+                li.textContent = point;
+                standardSpecificPointsList.appendChild(li);
+            });
+
+            sourceCurrencyDisplay.textContent = entityData.currency;
+
+            if (entityData.currencyShort === entityData.groupCurrency) {
+                 currencyConversionSection.style.display = 'none';
+            } else {
+                currencyConversionSection.style.display = 'block';
+                inputRateFromCurrency.textContent = entityData.currencyShort;
+                inputRateToCurrency.textContent = entityData.groupCurrency;
+                exchangeRateInput.value = entityData.defaultRate || '';
+                exchangeRateInput.disabled = false;
+                simulateConversionBtn.disabled = false;
+            }
+            if(conversionResultDisplay) conversionResultDisplay.innerHTML = '';
+        }
+
+        function initializeInternationalPage() {
+            if(entitySelect) {
+                entitySelect.addEventListener('change', function() {
+                    updateInternationalPageContent(this.value);
+                });
+                // Initial call to populate content based on default selection
+                updateInternationalPageContent(entitySelect.value);
+            }
+
+            const viewCoaMappingBtn = document.getElementById('viewCoaMappingBtn');
+            if(viewCoaMappingBtn) viewCoaMappingBtn.addEventListener('click', () => {
+                const currentEntityKey = entitySelect.value;
+                const entityData = mockEntitiesData[currentEntityKey];
+                let modalHtml = `<h4>科目映射表: ${entityData.name} (示例)</h4>`;
+                modalHtml += `<p>将 ${entityData.currencyShort} 本地科目映射至集团统一科目 (${entityData.groupCurrency})</p>`;
+                modalHtml += `<table class="modal-table"><thead><tr><th>本地科目代码</th><th>本地科目名称</th><th>集团科目代码</th><th>集团科目名称</th></tr></thead><tbody>`;
+                entityData.coaMapping.forEach(map => {
+                    modalHtml += `<tr><td>${map.localCode}</td><td>${map.localName}</td><td>${map.groupCode}</td><td>${map.groupName}</td></tr>`;
+                });
+                modalHtml += `</tbody></table>`;
+                modalHtml += `<p style="margin-top:10px; font-size:0.9em;"><strong>说明:</strong> 此为简化示例。实际系统中，映射规则将更复杂，支持多对一、条件映射，并可通过图形化界面配置或Excel导入/导出。</p>`;
+                openModal('科目映射表示例 (COA Mapping Example)', modalHtml);
+            });
+
+            if(simulateConversionBtn) simulateConversionBtn.addEventListener('click', () => {
+                const currentEntityKey = entitySelect.value;
+                const entityData = mockEntitiesData[currentEntityKey];
+                const rate = parseFloat(exchangeRateInput.value);
+
+                if (!rate || rate <= 0) {
+                    conversionResultDisplay.innerHTML = '<p style="color:red;">请输入有效的汇率。</p>';
+                    return;
+                }
+                let resultsHtml = `<p>按汇率 1 ${entityData.currencyShort} = ${rate.toFixed(4)} ${entityData.groupCurrency} 折算:</p>`;
+                resultsHtml += `<table class="modal-table" style="margin-top:5px;"><thead><tr><th>科目</th><th>原币金额 (${entityData.currencyShort})</th><th>折算后金额 (${entityData.groupCurrency})</th></tr></thead><tbody>`;
+                entityData.sampleAccounts.forEach(acc => {
+                    resultsHtml += `<tr><td>${acc.name}</td><td>${acc.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td><td>${(acc.amount * rate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>`;
+                });
+                resultsHtml += `</tbody></table>`;
+                conversionResultDisplay.innerHTML = resultsHtml;
+            });
+
+            const manageEntityConfigBtn = document.getElementById('manageEntityConfigBtn');
+            if(manageEntityConfigBtn) manageEntityConfigBtn.addEventListener('click', () => {
+                const currentEntityKey = entitySelect.value;
+                const entityData = mockEntitiesData[currentEntityKey];
+                let modalHtml = `<h4>管理实体配置: ${entityData.name} (模拟)</h4>`;
+                modalHtml += `<div class="form-group"><label for="confEntityName">实体名称:</label><input type="text" id="confEntityName" value="${entityData.name}" readonly></div>`;
+                modalHtml += `<div class="form-group"><label for="confAccStandard">会计准则:</label><select id="confAccStandard"><option value="CAS" ${entityData.standardShort === 'CAS' ? 'selected' : ''}>中国会计准则 (CAS)</option><option value="IFRS" ${entityData.standardShort === 'IFRS' ? 'selected' : ''}>国际财务报告准则 (IFRS)</option></select></div>`;
+                modalHtml += `<div class="form-group"><label for="confRepCurrency">报告币种:</label><select id="confRepCurrency"><option value="CNY" ${entityData.currencyShort === 'CNY' ? 'selected' : ''}>人民币 (CNY)</option><option value="USD" ${entityData.currencyShort === 'USD' ? 'selected' : ''}>美元 (USD)</option><option value="EUR" ${entityData.currencyShort === 'EUR' ? 'selected' : ''}>欧元 (EUR)</option></select></div>`;
+                modalHtml += `<div class="form-group"><label for="confCoaTemplate">科目表模板:</label><select id="confCoaTemplate"><option>集团标准科目表</option><option selected>${entityData.standardShort} 本地化科目表</option><option>自定义模板XYZ</option></select></div>`;
+                modalHtml += `<div class="form-group"><label for="confBudgetTolerance">预算容差比例 (%):</label><input type="number" id="confBudgetTolerance" value="10"></div>`;
+                modalHtml += `<div class="form-group"><label>启用规则集:</label><div><input type="checkbox" id="ruleGeneral" checked> <label for="ruleGeneral" style="display:inline;">通用财务规则</label></div><div><input type="checkbox" id="ruleTax" ${entityData.standardShort === 'CAS' ? 'checked' : ''}> <label for="ruleTax" style="display:inline;">税务合规规则</label></div><div><input type="checkbox" id="ruleIndustry"> <label for="ruleIndustry" style="display:inline;">行业特定规则</label></div></div>`;
+                modalHtml += `<div class="form-group"><label for="confConsolCurrency">统一折算币种:</label><select id="confConsolCurrency"><option value="CNY" ${entityData.groupCurrency === 'CNY' ? 'selected' : ''}>人民币 (CNY)</option><option value="USD" ${entityData.groupCurrency === 'USD' ? 'selected' : ''}>美元 (USD)</option></select></div>`;
+                modalHtml += `<p style="font-size:0.9em; margin-top:15px;">系统支持通过配置文件或可视化界面为每个单位设置独立的审核参数。配置采用向导式引导流程，新增单位便捷高效。</p>`;
+                modalHtml += `<div class="finding-actions" style="margin-top:20px;"><button class="action-button-sim" onclick="alert('配置已保存 (模拟)'); closeModal();">保存配置</button></div>`;
+                openModal('管理实体配置 (模拟)', modalHtml);
+            });
+
+            const newEntityWizardBtn = document.getElementById('newEntityWizardBtn');
+            if(newEntityWizardBtn) newEntityWizardBtn.addEventListener('click', () => {
+                let modalHtml = `<h4>新增单位向导 (模拟)</h4>`;
+                modalHtml += `<p>通过简单几步，快速完成新单位的接入和审核环境初始化。</p>`;
+                modalHtml += `<div class="form-group" style="margin-top:15px;"><label>步骤1: 输入单位基本信息</label><input type="text" placeholder="新单位名称, e.g., 子公司D (新加坡)"></div>`;
+                modalHtml += `<div class="form-group"><label>步骤2: 选择会计准则与报告币种</label><select><option>IFRS</option><option>CAS</option><option>US GAAP</option></select> <select><option>SGD</option><option>USD</option><option>CNY</option></select></div>`;
+                modalHtml += `<div class="form-group"><label>步骤3: 关联科目表模板</label><select><option>自动匹配模板</option><option>从现有模板选择</option><option>上传新模板</option></select></div>`;
+                modalHtml += `<div class="form-group"><label>步骤4: (可选) 配置初始特定规则</label><textarea placeholder="e.g., 启用新加坡GST税务检查规则"></textarea></div>`;
+                modalHtml += `<p style="font-size:0.9em; margin-top:15px;">底层采用多租户架构，每个单位的配置隔离独立，确保数据安全。</p>`;
+                modalHtml += `<div class="finding-actions" style="margin-top:20px;"><button class="action-button-sim" onclick="alert('新单位已初始化 (模拟)'); closeModal();">完成初始化</button></div>`;
+                openModal('新增单位向导 (模拟)', modalHtml);
+            });
+        }
+
+
+        window.addEventListener('load', () => {
+            document.body.style.opacity = '1';
+            // Ensure the correct page is shown on load if a hash is present, or default to home
+            const initialPage = window.location.hash ? window.location.hash.substring(1) : 'home';
+            const validPages = ['home', 'data-input', 'budget-control', 'international-version'];
+            if (validPages.includes(initialPage)) {
+                showPage(initialPage);
+            } else {
+                showPage('home');
+            }
+        });
+    </script>
+</body>
+</html>
